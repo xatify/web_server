@@ -1,0 +1,38 @@
+
+
+HTTP request:
+	request line : methode, URI, protocol version
+	header fields: 	- request modifiers
+					- client information
+					- representation metadata 
+	empty line : indicate the end of the header section
+	message body : payload body (if any)
+
+HTTP response:
+	status line : protocol version (success or error code), textual reason phrase
+	header fields : (optional)  - server information
+								- resource metadata
+								- representation metadata
+	empty line
+	message body: payload body if any
+
+
+The normal procedure for parsing an HTTP message is to read the 
+start-line into a structure, read each header field into a hash table 
+by field name until the empty line, and then use the parsed data to 
+determine if a message body is expected.  If a message body has been
+indicated, then it is read as a stream until an amount of octets
+equal to the message body length is read or the connection is closed.
+
+a recipient must parse an HTTP message as a sequence of octets in an encoding 
+that is a superset of US-ASCII .
+
+
+-- multi process architecture
+-- multi threaded architecture
+-- single Process Event-Driven
+-- asymmetric multi-process event Driven
+
+reactor pattern
+
+
