@@ -36,6 +36,19 @@ class Location {
 		// CGI not understood yet;
 };
 
+
+class Listen {
+	private:
+		u_int32_t	address;
+		u_int16_t	port;
+	public:
+		Listen ();
+		void set_address (u_int32_t add);
+		void set_port (u_int16_t);
+		u_int32_t	get_address () const;
+		u_int16_t	get_port () const;
+};
+
 class Server {
 	private:
 		std::pair <u_int32_t, u_int16_t> 		listen;
