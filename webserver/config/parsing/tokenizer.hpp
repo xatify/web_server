@@ -2,18 +2,12 @@
 #define __TOKENIZER_HPP_
 
 #include "tokens.hpp"
+#include "CharStreamer.hpp"
 #include <exception>
-#include <fstream>
 
-
-class Tokenizer {
+class Tokenizer: public Token {
 	private:
-		unsigned int line;
-		unsigned int column;
-		const std::istream_iterator <char> end;
-		std::istream_iterator <char> it;
-		std::filebuf				fb;
-		std::string					token;
+		CharStreamer  stream;
 	private:
 		void skip_comment ();
 	public:
@@ -25,6 +19,9 @@ class Tokenizer {
 		Tokenizer (const char *file);
 		~Tokenizer ();
 		Token next_token ();
-
+		Token current_token () const;
+		void expect (const std::string& id);
+		operator bool () const;
 };
+
 #endif

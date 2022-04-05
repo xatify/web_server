@@ -9,6 +9,7 @@
 // CGI configuration
 class CGI {};
 
+
 class Location {
 	private:
 		std::string					root;
@@ -87,18 +88,45 @@ class Server {
 		void set_client_max_body_size (unsigned int size);
 };
 
-class HttpConfig  {
+
+class Index {
 	private:
-		std::vector <std::string>	index;
-		std::string					root;
+		std::vector <std::string>	indexes;
+	public:
+		Index ();
+		~Index ();
+		Index& operator = (const Index& idx);
+		bool empty () const;
+		void add (const std::string& idx);
+
+};
+
+class Root {
+	private:
+		std::string			root;
+	public:
+		Root ();
+		~Root ();
+		bool empty () const;
+		const Root& operator = (const Root& rt);
+};
+
+class HttpConfig {
+	private:
+		Index						index;
+		Root						root;
 		std::vector<Server>			vServers;
 	public:
-		void add_index (std::string idx);
-		const std::vector <std::string>& get_index (void) const;
-		void set_root (std::string rt);
-		const std::string& get_root () const;
-		void add_server (Server srvr);
-		const std::vector<Server>& get_servers () const;
+		HttpConfig ();
+		~HttpConfig ();
+		const Index& getIndex () const ;
+		Index& getIndex ();
+
+		const Root& getRoot () const ;
+		Root& getRoot ();
+
+		std::vector<Server>& getServers ();
+		const std::vector<Server>& getServers () const;
 };
 
 #endif

@@ -6,63 +6,40 @@ Tokenizer::Error::Error (const std::string& _error): error (_error) {}
 const char* Tokenizer::Error::what () const _NOEXCEPT { return error.c_str (); }
 
 
-Tokenizer::Tokenizer (const char *file): line (0), column (0) {
-	if (fb.open (file, std::ios::in)) {
-		std::istream is (&fb);
-		std::noskipws (is);
-		it = std::istream_iterator <char> (is);
-	}
-	else
-		throw Error (std::string ("no file named ") + file);
-}
+Tokenizer::Tokenizer (const char *file): stream (file) {}
 
-Tokenizer::~Tokenizer () {
-	fb.close ();
-}
-
-void Tokenizer::skip_comment () {
-	if (*it == '#') {
-		while ((it != end && *it != '\n')) {
-				column++;
-				++it;
-		}
-	}
-}
+Tokenizer::~Tokenizer () {}
 
 Token Tokenizer::next_token() {
-	token.clear ();
-	while (it != end) {
-		if (*it == '#') skip_comment ();
-		else if (*it == '\n') {
-			line++;
-			column = 0;
-			++it;
+	this->clear ();
+	while (!stream.empty ()) {
+		if (stream == '#') { // skip comments
+			while (stream != '\n') stream.next ();
+			stream.next ();
 		}
-		else if (isspace (*it)) {
-			++it;
-			column++;
-			if (!token.empty ())
-				return (Token(token, line, (column - 1) - token.size ()));
- 		}
-		else {
-			if (*it == ';') {
-				if (!token.empty ()) {
-					Token tkn (token, line, column - token.size ());
-					token.empty ();
-					return (Token(token, line, column - token.size ()));
-				}
-				else {
-					++it;
-					column++;
-					return Token (";", line, column - 1);
-				}
+		if (isspace (*stream) && !empty ()) break;
+		if (stream == ';') {
+			if (empty ()) {
+				append (stream);
+				stream.next ();
 			}
-			else {
-				token += *it;
-				column++;
-				++it;
-			}
+			break;
 		}
+		append (stream);
+		stream.next ();
  	}
-	return Token ("", line, column);
+	return *this;
+}
+
+
+Token Tokenizer::current_token () const {
+	return *this;
+}
+
+void Tokenizer::expect (const std::string& id) {
+	next_token ().expect (id);
+}
+
+Tokenizer::operator bool () const {
+	return current_token ().empty ();
 }

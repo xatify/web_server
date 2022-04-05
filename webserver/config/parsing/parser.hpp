@@ -6,17 +6,59 @@
 #include <exception>
 #include "tokenizer.hpp"
 
-class Parser: public Tokenizer {
+
+template <typename T>
+class Parser {
+	private:
+		T			*component;
 	public:
-		Parser (const char *file);
-		HttpConfig 	parse_http () const;
-		Server 		parse_server () const;
-		Location	parse_location() const;
-		std::vector <std::string> parse_server_name () const;
-		Listen parse_listen () const;
-		u_int32_t parse_body_size () const;
-		// parse_error_page ();
-		// parse_auto_index ();
+		Parser (): component (0x0) {}
+		~Parser () { delete component; };
+		T&	parse (Tokenizer& tokenizer);
 };
+
+template <>
+HttpConfig&	Parser<HttpConfig>::parse (Tokenizer& tokenizer) {
+	component = new HttpConfig;
+	
+	tokenizer.expect ("http");
+	tokenizer.expect ("{");
+
+	Parser<Index>	indexParser;
+	Parser<Root>	rootParser;
+	Parser<Server>	serverParser;
+	while (tokenizer) {
+		std::string directive (tokenizer.current_token ().id ());
+		if (directive ==  "index") {
+			if (component->getIndex ().empty ())
+				component->getIndex () = indexParser.parse (tokenizer);
+			else
+				throw std::logic_error ("no more than one index allowed");
+		}
+		else if (directive == "root") {
+			if (component->getRoot ().empty()) {
+				component->getRoot () = rootParser.parse (tokenizer);
+			}
+			else
+				throw std::logic_error ("no more than one root allowed");
+		}
+		else if (directive == "server") {
+			component->getServers ().push_back (serverParser.parse (tokenizer));
+		}
+		else
+			throw std::logic_error ("directive Unkown");
+	}
+	tokenizer.expect ("}");
+	return *component;
+}
+
+template <>
+Index& Parser<Index>::parse (Tokenizer& tokenizer) {
+	component = new Index;
+	
+	while (tokenizer) {
+		std::
+	}
+}
 
 #endif
