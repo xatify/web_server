@@ -1,5 +1,3 @@
-
-
 # read https://www.digitalocean.com/community/tutorials/understanding-nginx-server-and-location-block-selection-algorithms
 # for the implementation
 
@@ -23,7 +21,7 @@ http {
 
 		listen 		port; #test comment 
 		server_name foo.com www.foo.com;
-		root		html ; 
+		root		html ;
 
 		location ~ \.php$ {
 			fastcgi_pass 127.0.0.1:1025;

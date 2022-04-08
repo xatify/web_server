@@ -2,26 +2,26 @@
 #define __TOKENIZER_HPP_
 
 #include "tokens.hpp"
-#include "CharStreamer.hpp"
 #include <exception>
+#include <vector>
 
-class Tokenizer: public Token {
+class Tokenizer {
 	private:
-		CharStreamer  stream;
-	private:
-		void skip_comment ();
+		std::vector <Token> tokens;
+		std::vector<Token>::iterator current;
 	public:
 		struct Error: public std::exception  {
 			std::string error;
 			Error (const std::string& _error);
+			~Error () _NOEXCEPT {}
 			virtual const char *what () const _NOEXCEPT;
 		};
 		Tokenizer (const char *file);
 		~Tokenizer ();
-		Token next_token ();
-		Token current_token () const;
 		void expect (const std::string& id);
-		operator bool () const;
+		Token operator *() const;
+		Tokenizer& operator++ ();
+		operator bool ();
 };
 
 #endif

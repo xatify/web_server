@@ -23,11 +23,11 @@
 
 <INDEX>			=	"index" 1*<STRING> <SEMICOLON>
 
-<AUTOINDEX>		=	"autoindex" ("true" / "false") <SEMICOLON>
+<AUTOINDEX>		=	"autoindex" ("on" / "off") <SEMICOLON>
 
 <ERROR_PAGE>	=	"error_page" <NUMBER> <STRING> <SEMICOLON>
 
-<BODY_SIZE>		=	"client_max_body_size" <NUMBER>'M' <SEMICOLON>
+<BODY_SIZE>		=	"max_body_size" <NUMBER>'M' <SEMICOLON>
 
 <LISTEN>		=	"listen" *1<ADDRESS> *1<PORT> <SEMICOLON>
 
@@ -42,12 +42,12 @@
 					<RIGHT_BRACKET>
 
 <SERVER>		=	"server" 
-					<LEFT_BRACKET> 
+					<LEFT_BRACKET>
 						*1<LISTEN>
-						*1<SERVER_NAME>
 						*1<ROOT>
 						*1<INDEX>
 						*<ERROR_PAGE>
+						*1<SERVER_NAME>
 						*1<BODY_SIZE>
 						*<LOCATION>
 					<RIGHT_BRACKET>
