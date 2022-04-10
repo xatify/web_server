@@ -3,7 +3,7 @@ prog = test
 FLAGS = -std=c++98 -g 
 GCC =  g++
 
-SOURCES =  ConfiGrammar.cpp tokenizer.cpp tokens.cpp Configuration.cpp main.cpp
+SOURCES =   tokenizer.cpp tokens.cpp Configuration.cpp main.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 %.o: %.cpp

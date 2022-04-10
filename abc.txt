@@ -1,7 +1,9 @@
-http{
+http {
+	root heleo;
+	
 	server {
-		error_page 404 /hello/404.html;
-		error_page 504 /hello/server_error.html;
+		error_page 404	/hello/404.html;
+		error_page 504	/hello/server_error.html;
 		listen 		8.0.8.0 8080;
 		server_name foo.com www.foo.com;
 		root		html ;

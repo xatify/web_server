@@ -51,6 +51,9 @@ void Tokenizer::tokenize () {
 				case '}':
 				case '{':
 					add_token (token, line, column);
+					token += *it;
+					add_token (token, line, column + 1);
+					break;
 				default:
 					if (isspace (*it)) {
 						add_token (token, line, column);

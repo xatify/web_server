@@ -2,6 +2,64 @@
 #include <arpa/inet.h>
 #include "utils.hpp"
 
+
+Component::Component (const std::string& dir, bool sin): _dir (dir), _sin (sin) {}
+Component::~Component () {}
+
+SimpleComponent::SimpleComponent (const std::string& _dir, bool _sin): Component (_dir, _sin) {}
+SimpleComponent::~SimpleComponent () {}
+void SimpleComponent::pretty_print (std::string _tab) const {
+	if (isSet ()) {
+		std::cout << _tab << _dir << " ";
+		print (_tab + "\t");
+		std::cout << ";\n";
+	}
+}
+void SimpleComponent::syntax_parse (Tokenizer &tokenizer) {
+	if (_sin && isSet ()) throw Error (tokenizer.error ("multiple directive, same name"));
+	tokenizer.expect (_dir);
+	parse (tokenizer);
+	if (!isSet ()) throw Error (tokenizer.error ("empty directive"));
+	tokenizer.expect (";");
+}
+
+BracketedComponent::BracketedComponent (const std::string& _dir, bool _sin): Component (_dir, _sin) {}
+BracketedComponent::~BracketedComponent () {}
+void BracketedComponent::pretty_print (std::string _tab) const {
+	if (isSet ()) {
+		std::cout << _tab << _dir << " {\n";
+		print (_tab + "\t");
+		std::cout << _tab << "}\n";
+	}
+}
+void BracketedComponent::syntax_parse (Tokenizer& tokenizer) {
+	if (_sin && isSet ()) throw Error (tokenizer.error ("multiple directive, same name"));
+	tokenizer.expect (_dir);
+	tokenizer.expect ("{");
+	parse (tokenizer);
+	tokenizer.expect ("}");
+}
+
+SuffixBracketedComponent::SuffixBracketedComponent (const std::string& _dir, bool _sin): Component (_dir, _sin) {}
+SuffixBracketedComponent::~SuffixBracketedComponent () {}
+std::string& SuffixBracketedComponent::_suffix () { return _suf; }
+void SuffixBracketedComponent::pretty_print (std::string _tab) const {
+	if (isSet ()) {
+		std::cout << _tab << _dir << " " << _suf << " {\n";
+		print (_tab + "\t");
+		std::cout << _tab << "}\n";
+	}
+}
+void SuffixBracketedComponent::syntax_parse (Tokenizer& tokenizer) {
+	if (_sin && isSet ()) throw Error (tokenizer.error ("multiple directive, same name"));
+	tokenizer.expect (_dir);
+	_suf = (*tokenizer).id ();
+	++tokenizer;
+	tokenizer.expect ("{");
+	parse (tokenizer);
+	tokenizer.expect ("}");
+}
+
 // must respect network byte order
 Address::Address (): is_set (false), address (0) {}
 Address::~Address () {}
@@ -46,7 +104,7 @@ void Port::parse (Tokenizer& tokenizer) {
 	}
 }
 
-Listen::Listen (): Component ("listen") {}
+Listen::Listen (): SimpleComponent ("listen") {}
 Listen::~Listen () {}
 bool Listen::isSet () const { return Address::isSet () || Port::isSet (); }
 void Listen::parse (Tokenizer& tokenizer) {
@@ -58,21 +116,19 @@ void Listen::print (std::string tabulation) const {
 }
 
 
-Root::Root (): Component ("root") {}
+Root::Root (): SimpleComponent ("root") {}
 Root::~Root () {}
 bool Root::isSet () const { return !root.empty (); }
 void Root::parse (Tokenizer &tokenizer) {
-	if (!(*tokenizer).is_directive ()) {
-		root = (*tokenizer).id ();
-		++tokenizer;
-	}
+	root = (*tokenizer).id ();
+	++tokenizer;
 }
 void Root::print (std::string tabulation) const {
 	std::cout << root;
 }
 
 
-Index::Index (): Component ("index") {}
+Index::Index (): SimpleComponent ("index") {}
 Index::~Index () {}
 bool Index::isSet () const { return !indexes.empty (); }
 void Index::parse (Tokenizer & tokenizer) {
@@ -87,7 +143,7 @@ void Index::print (std::string tabulation) const {
 	}
 }
 
-AutoIndex::AutoIndex (): Component ("auto_index"), on ("") {}
+AutoIndex::AutoIndex (): SimpleComponent ("auto_index"), on ("") {}
 AutoIndex::~AutoIndex () {}
 bool AutoIndex::isSet () const { return !on.empty (); }
 void AutoIndex::parse (Tokenizer& tokenizer) {
@@ -102,7 +158,7 @@ void AutoIndex::print (std::string tabulation) const {
 	std::cout << on;
 }
 
-BodySize::BodySize (): Component ("max_body_size"), size (0), already_set (false) {}
+BodySize::BodySize (): SimpleComponent ("max_body_size"), size (0), already_set (false) {}
 BodySize::~BodySize () {}
 void BodySize::setBodySize (unsigned int sz) { size = sz; } 
 unsigned int BodySize::getBodySize () const { return size; }
@@ -121,7 +177,7 @@ void BodySize::print (std::string tabulation) const {
 	std::cout << size;
 }
 
-AllowedMethods::AllowedMethods (): Component ("allowed_methods") {}
+AllowedMethods::AllowedMethods (): SimpleComponent ("allowed_methods") {}
 AllowedMethods::~AllowedMethods () {}
 bool AllowedMethods::isSet () const { return !methods.empty (); }
 void AllowedMethods::parse (Tokenizer& tokenizer) {
@@ -139,7 +195,7 @@ void AllowedMethods::print (std::string tabulation) const {
 	}
 }
 
-ErrorPages::ErrorPages (): Component ("error_page", false) {}
+ErrorPages::ErrorPages (): SimpleComponent ("error_page", false) {}
 ErrorPages::~ErrorPages () {}
 bool ErrorPages::isSet () const { return !error_pages.empty (); }
 void ErrorPages::parse (Tokenizer& tokenizer) {
@@ -168,7 +224,7 @@ void ErrorPages::print (std::string tabulation) const {
 	}
 }
 
-ServerNames::ServerNames (): Component ("server_name") {}
+ServerNames::ServerNames (): SimpleComponent ("server_name") {}
 ServerNames::~ServerNames () {}
 bool ServerNames::isSet () const { return !names.empty (); }
 void ServerNames::parse (Tokenizer& tokenizer) {
@@ -186,9 +242,9 @@ void ServerNames::print (std::string tabulation) const {
 	}
 }
 
-Location::Location (): Component ("location", false, true, true) {}
+Location::Location (): SuffixBracketedComponent ("location") {}
 Location::~Location () {}
-std::string Location::path () const { return afdirective (); }
+std::string Location::path () const { return _suf; }
 bool Location::isSet () const {
 	return root.isSet () || index.isSet () || autoIndex.isSet () || methods.isSet (); }
 void Location::parse (Tokenizer& tokenizer) {
@@ -206,7 +262,6 @@ void Location::parse (Tokenizer& tokenizer) {
 			throw Error (tokenizer.error ("directive not allowed"));
 	}
 }
-
 void Location::print (std::string tabulation) const {
 	root.pretty_print (tabulation);
 	index.pretty_print (tabulation);
@@ -229,7 +284,7 @@ void Locations::print (std::string tabulation) const {
 	}
 }
 
-Server::Server (): Component ("server", false, false, true) {}
+Server::Server (): BracketedComponent ("server", false) {}
 Server::~Server () {}
 bool Server::isSet () const { return root.isSet () || index.isSet () || listen.isSet ()
 							|| error_pages.isSet () || server_names.isSet () || body_size.isSet ()
@@ -281,7 +336,7 @@ void vServers::print (std::string tabulation) const {
 }
 
 
-HttpConfig::HttpConfig (): Component ("http", true, false, true) {}
+HttpConfig::HttpConfig (): BracketedComponent ("http", true) {}
 HttpConfig::~HttpConfig () {}
 bool HttpConfig::isSet () const { return index.isSet () || root.isSet () || servers.isSet (); }
 void HttpConfig::parse (Tokenizer& tokenizer) {

@@ -1,11 +1,62 @@
-#ifndef __CONFIGURATION_HPP_
-#define __CONFIGURATION_HPP_
+#ifndef __CONFIGURATION_HPP__
+#define __CONFIGURATION_HPP__
 
-#include "ConfiGrammar.hpp"
-#include <iostream>
-#include <map>
+#include "tokenizer.hpp"
+#include <string>
 #include <vector>
 #include <set>
+#include <map>
+
+class Component {
+	protected:
+		std::string		_dir;
+		bool			_sin;
+	public:
+		Component (const std::string &, bool);
+		~Component ();
+		virtual bool isSet () const = 0;
+		virtual void print (std::string tabulation = "") const = 0;
+		virtual void pretty_print (std::string tabulation = "") const = 0;
+		virtual void syntax_parse (Tokenizer &) = 0;
+		virtual void parse (Tokenizer& ) = 0;
+};
+
+class SimpleComponent: public Component {
+	public:
+		SimpleComponent (const std::string &, bool _sin = true);
+		~SimpleComponent ();
+		virtual bool isSet () const = 0;
+		virtual void print (std::string _tab = "") const = 0;
+		virtual void pretty_print (std::string _tab = "") const;
+		virtual void syntax_parse (Tokenizer &);
+		virtual void parse (Tokenizer& ) = 0;
+};
+
+class BracketedComponent: public Component {
+	public:
+		BracketedComponent (const std::string &, bool _sin = false);
+		~BracketedComponent ();
+		virtual bool isSet () const = 0;
+		virtual void print (std::string _tab = "") const = 0;
+		virtual void pretty_print (std::string _tab = "") const;
+		virtual void syntax_parse (Tokenizer &);
+		virtual void parse (Tokenizer& ) = 0;
+
+};
+
+class SuffixBracketedComponent: public Component {
+	protected:
+		std::string		_suf;
+	public:
+		SuffixBracketedComponent (const std::string &, bool _sin = false);
+		~SuffixBracketedComponent ();
+		std::string&	_suffix ();
+		virtual bool isSet () const = 0;
+		virtual void print (std::string _tab = "") const = 0;
+		virtual void pretty_print (std::string _tab = "") const;
+		virtual void syntax_parse (Tokenizer &);
+		virtual void parse (Tokenizer& ) = 0;
+};
 
 class Address {
 	private:
@@ -34,7 +85,7 @@ class Port {
 		void parse (Tokenizer& );
 };
 
-class Listen: public Component, Port, Address {
+class Listen: public SimpleComponent, Port, Address {
 	public:
 		Listen ();
 		~Listen ();
@@ -43,7 +94,7 @@ class Listen: public Component, Port, Address {
 		void parse (Tokenizer& );
 };
 
-class Index: public Component {
+class Index: public SimpleComponent {
 	private:
 		std::vector <std::string>	indexes;
 	public:
@@ -56,7 +107,7 @@ class Index: public Component {
 		void parse (Tokenizer& );
 };
 
-class Root: public Component {
+class Root: public SimpleComponent {
 	private:
 		std::string			root;
 	public:
@@ -69,7 +120,7 @@ class Root: public Component {
 		void parse (Tokenizer& );
 };
 
-class AutoIndex: public Component {
+class AutoIndex: public SimpleComponent {
 	private:
 		std::string on;
 	public:
@@ -82,7 +133,7 @@ class AutoIndex: public Component {
 		void parse (Tokenizer& );
 };
 
-class BodySize: public Component{
+class BodySize: public SimpleComponent {
 	private:
 		unsigned int size;
 		bool already_set; 
@@ -96,7 +147,7 @@ class BodySize: public Component{
 		void parse (Tokenizer& );
 };
 
-class AllowedMethods: public Component {
+class AllowedMethods: public SimpleComponent {
 	private:
 		std::set <std::string> methods;
 	public:
@@ -108,7 +159,7 @@ class AllowedMethods: public Component {
 		void parse (Tokenizer& );
 };
 
-class ErrorPages: public Component {
+class ErrorPages: public SimpleComponent {
 	private:
 		std::map <unsigned short, std::string> error_pages;
 	public:
@@ -119,7 +170,7 @@ class ErrorPages: public Component {
 		void parse (Tokenizer& );
 };
 
-class ServerNames: public Component {
+class ServerNames: public SimpleComponent {
 	private:
 		std::set <std::string>	names;
 	public:
@@ -132,7 +183,7 @@ class ServerNames: public Component {
 };
 
 
-class Location: public Component {
+class Location: public SuffixBracketedComponent {
 	private:
 		Root			root;
 		Index			index;
@@ -160,7 +211,7 @@ class Locations {
 		void parse (Tokenizer& );
 };
 
-class Server: public Component {
+class Server: public BracketedComponent {
 	private:
 		Root		root;
 		Index		index;
@@ -188,7 +239,7 @@ class vServers {
 		void parse (Tokenizer& );
 };
 
-class HttpConfig: public Component {
+class HttpConfig: public BracketedComponent {
 	private:
 		Index		index;
 		Root		root;
@@ -200,7 +251,5 @@ class HttpConfig: public Component {
 		bool isSet () const;
 		void parse (Tokenizer &);
 };
-
-
 
 #endif
