@@ -2,6 +2,7 @@
 #define __TOKEN_HPP__
 
 #include <string>
+#include <iostream>
 
 class Token {
 	private:
@@ -11,6 +12,9 @@ class Token {
 		static const char * directives [];
 	public:
 		Token (std::string tkn = "", unsigned int _line = 0, unsigned int _column = 0);
+		Token (const Token& tkn);
+		Token& operator = (const Token& rhs);
+		~Token () {};
 		bool empty () const;
 		std::string status (const char *) const;
 		bool is_directive () const;
@@ -18,7 +22,8 @@ class Token {
 		u_int32_t& column (void);
 		const std::string& id () const;
 		bool isNumber () const;
-		void expect (const std::string&);
+		void expect (const std::string&) const;
+		friend std::ostream& operator << (std::ostream&  output, const Token &token);
 };
 
 #endif

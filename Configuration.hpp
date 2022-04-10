@@ -2,6 +2,7 @@
 #define __CONFIGURATION_HPP_
 
 #include "ConfiGrammar.hpp"
+#include <iostream>
 #include <map>
 #include <vector>
 #include <set>
@@ -14,6 +15,7 @@ class Address {
 		Address ();
 		~Address ();
 		bool isSet () const { return is_set; }
+		const char* print () const;
 		u_int32_t getAdress () const;
 		void setAddress (u_int32_t addr);
 		void parse (Tokenizer& );
@@ -36,6 +38,7 @@ class Listen: public Component, Port, Address {
 	public:
 		Listen ();
 		~Listen ();
+		void print (std::string tabulation) const;
 		bool isSet () const;
 		void parse (Tokenizer& );
 };
@@ -46,6 +49,7 @@ class Index: public Component {
 	public:
 		Index ();
 		~Index ();
+		void print (std::string tabulation) const;
 		Index& operator = (const Index& idx);
 		bool isSet () const;
 		void addIndex (const std::string& idx);
@@ -58,6 +62,7 @@ class Root: public Component {
 	public:
 		Root ();
 		~Root ();
+		void print (std::string tabulation) const;
 		const Root& operator = (const Root& rt);
 		bool isSet () const;
 		void setRoot (const std::string& rt);
@@ -70,6 +75,7 @@ class AutoIndex: public Component {
 	public:
 		AutoIndex ();
 		~AutoIndex ();
+		void print (std::string tabulation) const;
 		bool isSet () const;
 		void setAutoIndex (bool on);
 		bool getAutoIndex () const;
@@ -83,6 +89,7 @@ class BodySize: public Component{
 	public:
 		BodySize ();
 		~BodySize ();
+		void print (std::string tabulation) const;
 		bool isSet () const;
 		void setBodySize (unsigned int);
 		unsigned int getBodySize () const;
@@ -95,6 +102,8 @@ class AllowedMethods: public Component {
 	public:
 		AllowedMethods ();
 		~AllowedMethods ();
+		void print (std::string tabulation) const;
+		friend std::ostream& operator<< (std::ostream& os, const Address&);
 		bool isSet () const;
 		void parse (Tokenizer& );
 };
@@ -104,8 +113,9 @@ class ErrorPages: public Component {
 		std::map <unsigned short, std::string> error_pages;
 	public:
 		ErrorPages ();
-		bool isSet () const;
 		~ErrorPages ();
+		bool isSet () const;
+		void print (std::string tabulation) const;
 		void parse (Tokenizer& );
 };
 
@@ -115,6 +125,7 @@ class ServerNames: public Component {
 	public:
 		ServerNames ();
 		~ServerNames ();
+		void print (std::string tabulation) const;
 		bool isSet () const;
 		bool empty () const;
 		void parse (Tokenizer& );
@@ -130,6 +141,7 @@ class Location: public Component {
 	public:
 		Location ();
 		~Location ();
+		void print (std::string tabulation) const;
 		std::string path () const;
 		bool isSet () const;
 		bool empty () const;
@@ -143,6 +155,7 @@ class Locations {
 		Locations ();
 		~Locations ();
 		bool isSet () const;
+		void print (std::string tabulation) const;
 		void GetLocations () const;
 		void parse (Tokenizer& );
 };
@@ -159,6 +172,7 @@ class Server: public Component {
 	public:
 		Server ();
 		~Server ();
+		void print (std::string tabulation) const;
 		bool isSet () const;
 		void parse (Tokenizer&);
 };
@@ -169,6 +183,7 @@ class vServers {
 	public:
 		vServers ();
 		~vServers ();
+		void print (std::string tabulation) const;
 		bool isSet () const;
 		void parse (Tokenizer& );
 };
@@ -181,6 +196,7 @@ class HttpConfig: public Component {
 	public:
 		HttpConfig ();
 		~HttpConfig ();
+		void print (std::string tabulation = "") const;
 		bool isSet () const;
 		void parse (Tokenizer &);
 };
