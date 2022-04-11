@@ -13,8 +13,10 @@ class Component {
 		bool			_sin;
 	public:
 		Component (const std::string &, bool);
-		~Component ();
+		virtual ~Component ();
+		const std::string& dir () const { return _dir; } 
 		virtual bool isSet () const = 0;
+		virtual Component* clone () = 0;
 		virtual void print (std::string tabulation = "") const = 0;
 		virtual void pretty_print (std::string tabulation = "") const = 0;
 		virtual void syntax_parse (Tokenizer &) = 0;
@@ -24,8 +26,9 @@ class Component {
 class SimpleComponent: public Component {
 	public:
 		SimpleComponent (const std::string &, bool _sin = true);
-		~SimpleComponent ();
+		virtual ~SimpleComponent ();
 		virtual bool isSet () const = 0;
+		virtual SimpleComponent* clone () = 0;
 		virtual void print (std::string _tab = "") const = 0;
 		virtual void pretty_print (std::string _tab = "") const;
 		virtual void syntax_parse (Tokenizer &);
@@ -35,7 +38,8 @@ class SimpleComponent: public Component {
 class BracketedComponent: public Component {
 	public:
 		BracketedComponent (const std::string &, bool _sin = false);
-		~BracketedComponent ();
+		virtual ~BracketedComponent ();
+		virtual BracketedComponent* clone () = 0;
 		virtual bool isSet () const = 0;
 		virtual void print (std::string _tab = "") const = 0;
 		virtual void pretty_print (std::string _tab = "") const;
@@ -49,9 +53,10 @@ class SuffixBracketedComponent: public Component {
 		std::string		_suf;
 	public:
 		SuffixBracketedComponent (const std::string &, bool _sin = false);
-		~SuffixBracketedComponent ();
+		virtual ~SuffixBracketedComponent ();
 		std::string&	_suffix ();
 		virtual bool isSet () const = 0;
+		virtual SuffixBracketedComponent* clone () = 0;
 		virtual void print (std::string _tab = "") const = 0;
 		virtual void pretty_print (std::string _tab = "") const;
 		virtual void syntax_parse (Tokenizer &);
@@ -86,9 +91,13 @@ class Port {
 };
 
 class Listen: public SimpleComponent, Port, Address {
+	private:
+		Address _addr;
+		Port	_prt;
 	public:
 		Listen ();
 		~Listen ();
+		Listen* clone ();
 		void print (std::string tabulation) const;
 		bool isSet () const;
 		void parse (Tokenizer& );
@@ -101,7 +110,7 @@ class Index: public SimpleComponent {
 		Index ();
 		~Index ();
 		void print (std::string tabulation) const;
-		Index& operator = (const Index& idx);
+		Index* clone ();
 		bool isSet () const;
 		void addIndex (const std::string& idx);
 		void parse (Tokenizer& );
@@ -113,6 +122,7 @@ class Root: public SimpleComponent {
 	public:
 		Root ();
 		~Root ();
+		Root* clone ();
 		void print (std::string tabulation) const;
 		const Root& operator = (const Root& rt);
 		bool isSet () const;
@@ -127,6 +137,7 @@ class AutoIndex: public SimpleComponent {
 		AutoIndex ();
 		~AutoIndex ();
 		void print (std::string tabulation) const;
+		AutoIndex* clone ();
 		bool isSet () const;
 		void setAutoIndex (bool on);
 		bool getAutoIndex () const;
@@ -140,6 +151,7 @@ class BodySize: public SimpleComponent {
 	public:
 		BodySize ();
 		~BodySize ();
+		BodySize* clone ();
 		void print (std::string tabulation) const;
 		bool isSet () const;
 		void setBodySize (unsigned int);
@@ -153,8 +165,8 @@ class AllowedMethods: public SimpleComponent {
 	public:
 		AllowedMethods ();
 		~AllowedMethods ();
+		AllowedMethods* clone ();
 		void print (std::string tabulation) const;
-		friend std::ostream& operator<< (std::ostream& os, const Address&);
 		bool isSet () const;
 		void parse (Tokenizer& );
 };
@@ -165,6 +177,7 @@ class ErrorPages: public SimpleComponent {
 	public:
 		ErrorPages ();
 		~ErrorPages ();
+		ErrorPages* clone ();
 		bool isSet () const;
 		void print (std::string tabulation) const;
 		void parse (Tokenizer& );
@@ -176,6 +189,7 @@ class ServerNames: public SimpleComponent {
 	public:
 		ServerNames ();
 		~ServerNames ();
+		ServerNames* clone ();
 		void print (std::string tabulation) const;
 		bool isSet () const;
 		bool empty () const;
@@ -185,13 +199,12 @@ class ServerNames: public SimpleComponent {
 
 class Location: public SuffixBracketedComponent {
 	private:
-		Root			root;
-		Index			index;
-		AutoIndex		autoIndex;
-		AllowedMethods	methods;
+		std::vector <Component *> _com;
 	public:
 		Location ();
 		~Location ();
+		Location& operator= (const Location&);
+		Location* clone ();
 		void print (std::string tabulation) const;
 		std::string path () const;
 		bool isSet () const;
@@ -213,16 +226,13 @@ class Locations {
 
 class Server: public BracketedComponent {
 	private:
-		Root		root;
-		Index		index;
-		Listen		listen;
-		ErrorPages	error_pages;
-		ServerNames	server_names;
-		BodySize	body_size;
+		std::vector <Component *> _com;
 		Locations	locations;
 	public:
 		Server ();
 		~Server ();
+		Server* clone ();
+		Server& operator = (const Server&);
 		void print (std::string tabulation) const;
 		bool isSet () const;
 		void parse (Tokenizer&);

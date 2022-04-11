@@ -38,6 +38,8 @@ void BracketedComponent::syntax_parse (Tokenizer& tokenizer) {
 	tokenizer.expect ("{");
 	parse (tokenizer);
 	tokenizer.expect ("}");
+	if (_dir == "http" && tokenizer)
+		throw Error (tokenizer.error ("directive not allowed"));
 }
 
 SuffixBracketedComponent::SuffixBracketedComponent (const std::string& _dir, bool _sin): Component (_dir, _sin) {}
@@ -106,19 +108,26 @@ void Port::parse (Tokenizer& tokenizer) {
 
 Listen::Listen (): SimpleComponent ("listen") {}
 Listen::~Listen () {}
-bool Listen::isSet () const { return Address::isSet () || Port::isSet (); }
+bool Listen::isSet () const { return _prt.isSet () || _addr.isSet (); }
 void Listen::parse (Tokenizer& tokenizer) {
-	Address::parse (tokenizer);
-	Port::parse (tokenizer);
+	_addr.parse (tokenizer);
+	_prt.parse (tokenizer);
 }
+Listen* Listen::clone () {
+	Listen *_listen = new Listen ();
+	*_listen = *this;
+	return _listen; 
+}
+
 void Listen::print (std::string tabulation) const {
-	std::cout << Address::print() << ":" << getPort ();
+	std::cout << _addr.print() << ":" << _prt.getPort ();
 }
 
 
 Root::Root (): SimpleComponent ("root") {}
 Root::~Root () {}
 bool Root::isSet () const { return !root.empty (); }
+Root* Root::clone () { return new Root(*this); }
 void Root::parse (Tokenizer &tokenizer) {
 	root = (*tokenizer).id ();
 	++tokenizer;
@@ -131,6 +140,7 @@ void Root::print (std::string tabulation) const {
 Index::Index (): SimpleComponent ("index") {}
 Index::~Index () {}
 bool Index::isSet () const { return !indexes.empty (); }
+Index* Index::clone () { return new Index (*this); }
 void Index::parse (Tokenizer & tokenizer) {
 	while (!(*(tokenizer)).is_directive ()) {
 		indexes.push_back ((*tokenizer).id ());
@@ -145,6 +155,7 @@ void Index::print (std::string tabulation) const {
 
 AutoIndex::AutoIndex (): SimpleComponent ("auto_index"), on ("") {}
 AutoIndex::~AutoIndex () {}
+AutoIndex* AutoIndex::clone () { return new AutoIndex (*this); }
 bool AutoIndex::isSet () const { return !on.empty (); }
 void AutoIndex::parse (Tokenizer& tokenizer) {
 	if (tokenizer.id () == "on" || tokenizer.id () == "off") {
@@ -162,6 +173,7 @@ BodySize::BodySize (): SimpleComponent ("max_body_size"), size (0), already_set 
 BodySize::~BodySize () {}
 void BodySize::setBodySize (unsigned int sz) { size = sz; } 
 unsigned int BodySize::getBodySize () const { return size; }
+BodySize* BodySize::clone () { return new BodySize (*this); }
 bool BodySize::isSet () const { return already_set; }
 void BodySize::parse (Tokenizer& tokenizer) {
 	std::string sz = tokenizer.id ();
@@ -180,6 +192,7 @@ void BodySize::print (std::string tabulation) const {
 AllowedMethods::AllowedMethods (): SimpleComponent ("allowed_methods") {}
 AllowedMethods::~AllowedMethods () {}
 bool AllowedMethods::isSet () const { return !methods.empty (); }
+AllowedMethods* AllowedMethods::clone () { return new AllowedMethods (*this); }
 void AllowedMethods::parse (Tokenizer& tokenizer) {
 	std::pair<std::set<std::string>::iterator,bool> ret;
 	while (!(*tokenizer).is_directive ()) {
@@ -197,6 +210,7 @@ void AllowedMethods::print (std::string tabulation) const {
 
 ErrorPages::ErrorPages (): SimpleComponent ("error_page", false) {}
 ErrorPages::~ErrorPages () {}
+ErrorPages* ErrorPages::clone () { return new ErrorPages (*this); }
 bool ErrorPages::isSet () const { return !error_pages.empty (); }
 void ErrorPages::parse (Tokenizer& tokenizer) {
 	unsigned int code;
@@ -226,6 +240,7 @@ void ErrorPages::print (std::string tabulation) const {
 
 ServerNames::ServerNames (): SimpleComponent ("server_name") {}
 ServerNames::~ServerNames () {}
+ServerNames* ServerNames::clone () { return new ServerNames (*this); }
 bool ServerNames::isSet () const { return !names.empty (); }
 void ServerNames::parse (Tokenizer& tokenizer) {
 	std::pair<std::set<std::string>::iterator,bool> ret;
@@ -242,31 +257,50 @@ void ServerNames::print (std::string tabulation) const {
 	}
 }
 
-Location::Location (): SuffixBracketedComponent ("location") {}
-Location::~Location () {}
+Location::Location (): SuffixBracketedComponent ("location") {
+	_com.push_back (new Index ());
+	_com.push_back (new Root ());
+	_com.push_back (new AutoIndex ());
+	_com.push_back (new AllowedMethods ());
+}
+Location::~Location () {
+	for (std::vector <Component *>::iterator it = _com.begin (); it != _com.end (); ++it)
+		delete (*it);
+}
+Location& Location::operator =(const Location& rhs) {
+	if (this != &rhs) {
+		for (std::vector <Component *>::iterator it = _com.begin (); it != _com.end (); ++it)
+			delete (*it);
+		_com.clear ();
+		for (std::vector <Component *>::const_iterator it = rhs._com.cbegin (); it != rhs._com.cend (); ++it)
+			_com.push_back ((*it)->clone ());
+	}
+	return *this;
+}
+Location* Location::clone () { return new Location (*this); }
 std::string Location::path () const { return _suf; }
 bool Location::isSet () const {
-	return root.isSet () || index.isSet () || autoIndex.isSet () || methods.isSet (); }
+	for (std::vector <Component *>::const_iterator it = _com.begin (); it != _com.end (); ++it)
+		if ((*it)->isSet ()) return true;
+	return false;
+}
 void Location::parse (Tokenizer& tokenizer) {
 	while (tokenizer && tokenizer.id () != "}") {
-		const std::string &direct = (*tokenizer).id ();
-		if (direct == "index")
-			index.syntax_parse (tokenizer);
-		else if (direct == "root")
-			root.syntax_parse (tokenizer);
-		else if (direct == "auto_index")
-			autoIndex.syntax_parse (tokenizer);
-		else if (direct == "allowed_methods")
-			methods.syntax_parse (tokenizer);
-		else
+		bool set = false;
+		for (std::vector <Component *>::iterator it = _com.begin (); it != _com.end (); ++it) {
+			if ((*it)->dir() == tokenizer.id ()) {
+				(*it)->syntax_parse (tokenizer);
+				set = true;
+				break;
+			}
+		}
+		if (!set)
 			throw Error (tokenizer.error ("directive not allowed"));
 	}
 }
 void Location::print (std::string tabulation) const {
-	root.pretty_print (tabulation);
-	index.pretty_print (tabulation);
-	autoIndex.pretty_print (tabulation);
-	methods.pretty_print (tabulation);
+	for (std::vector <Component *>::const_iterator it = _com.cbegin (); it != _com.cend (); ++it)
+		(*it)->pretty_print (tabulation + "\t");
 }
 
 Locations::Locations () {}
@@ -284,39 +318,59 @@ void Locations::print (std::string tabulation) const {
 	}
 }
 
-Server::Server (): BracketedComponent ("server", false) {}
-Server::~Server () {}
-bool Server::isSet () const { return root.isSet () || index.isSet () || listen.isSet ()
-							|| error_pages.isSet () || server_names.isSet () || body_size.isSet ()
-							|| locations.isSet (); }
+Server::Server (): BracketedComponent ("server", false) {
+	_com.push_back (new Index ());
+	_com.push_back (new Root ());
+	_com.push_back (new Listen ());
+	_com.push_back (new ErrorPages ());
+	_com.push_back (new ServerNames ());
+	_com.push_back (new BodySize ());
+}
+Server& Server::operator= (const Server& rhs) {
+	if (this != &rhs) {
+		locations = rhs.locations;
+		for (std::vector<Component*>::iterator it = _com.begin (); it != _com.end (); ++it)
+			delete *it;
+		_com.clear ();
+		for (std::vector<Component*>::const_iterator it = rhs._com.cbegin (); it != rhs._com.cend (); ++it)
+			_com.push_back ((*it)->clone ());
+	}
+	return *this;
+} 
+Server* Server::clone () {return new Server (*this); }
+Server::~Server () {
+	for (std::vector <Component *>::iterator it = _com.begin (); it != _com.end (); ++it) {
+		delete (*it);
+	}
+}
+bool Server::isSet () const {
+	for (std::vector <Component *>::const_iterator it = _com.cbegin (); it != _com.cend (); ++it) {
+		if ((*it)->isSet ())
+			return true;
+	}
+	return (locations.isSet ());
+}
 void Server::parse (Tokenizer& tokenizer) {
 	while (tokenizer && tokenizer.id () != "}") {
-		const std::string &direct = (*tokenizer).id ();
-		if (direct == "listen")
-			listen.syntax_parse (tokenizer);
-		else if (direct == "root")
-			root.syntax_parse (tokenizer);
-		else if (direct == "index")
-			index.syntax_parse (tokenizer);
-		else if (direct == "error_page")
-			error_pages.syntax_parse (tokenizer);
-		else if (direct == "server_name")
-			server_names.syntax_parse (tokenizer);
-		else if (direct == "max_body_size")
-			body_size.syntax_parse (tokenizer);
-		else if (direct == "location")
+		bool set = false;
+		for (std::vector <Component *>::iterator it = _com.begin (); it != _com.end (); ++it) {
+			if ((*it)->dir() == tokenizer.id ()) {
+				(*it)->syntax_parse (tokenizer);
+				set = true;
+				break;
+			}
+		}
+		if (tokenizer.id () == "location") {
 			locations.parse (tokenizer);
-		else
-			throw Error (tokenizer.error ("directive not allowed"));
+			set = true;
+		}
+		if (!set)
+			throw Error (tokenizer.error ("directive not allowed"));	
 	}
 }
 void Server::print (std::string tabulation) const {
-	listen.pretty_print (tabulation);
-	root.pretty_print (tabulation);
-	index.pretty_print (tabulation);
-	error_pages.pretty_print (tabulation);
-	server_names.pretty_print (tabulation);
-	body_size.pretty_print (tabulation);
+	for (std::vector <Component *>::const_iterator it = _com.cbegin (); it != _com.cend (); ++it)
+		(*it)->pretty_print (tabulation + "\t");
 	locations.print (tabulation);
 }
 
@@ -338,6 +392,7 @@ void vServers::print (std::string tabulation) const {
 
 HttpConfig::HttpConfig (): BracketedComponent ("http", true) {}
 HttpConfig::~HttpConfig () {}
+HttpConfig* HttpConfig::clone () { return new HttpConfig (*this); }
 bool HttpConfig::isSet () const { return index.isSet () || root.isSet () || servers.isSet (); }
 void HttpConfig::parse (Tokenizer& tokenizer) {
 	while (tokenizer && tokenizer.id () != "}") {
