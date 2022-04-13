@@ -16,6 +16,7 @@ void Tokenizer::add_token (std::string& tkn, unsigned int line, unsigned int col
 			if ((last == ";" && tkn == ";") ||
 				(last == "{" && tkn == "{") ||
 				(last == "{" && tkn == ";") ||
+				(last == "{" && tkn == "}") ||
 				(last == "}" && tkn == ";")) {
 				throw Error (token.status("unexpected token"));
 			}

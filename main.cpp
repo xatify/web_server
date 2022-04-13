@@ -13,13 +13,13 @@ int main () {
 		std::cout << e.what ();
 	}
 	if (tokenizer.ready ()) {
-		HttpConfig Config;
+		Component * HttpConfig = ComponentCreator::instance ().create ("http");
 		try {
-			Config.syntax_parse (tokenizer);
-			Config.pretty_print ();
+			HttpConfig->syntax_parse (tokenizer);
+			HttpConfig->pretty_print ();
 		}
 		catch (std::exception& e) {
-			std::cout << e.what ();
+			std::cout << e.what () << std::endl;
 		}
 	}
 }

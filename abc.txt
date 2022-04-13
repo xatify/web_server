@@ -1,25 +1,28 @@
 http {
-	root heleo;
+	root hello;
 	index heh hrhrhr;
 	server {
-		error_page 404	/hello/404.html;
-		error_page 504	/hello/server_error.html;
+		error_page 404:/hello/404.html 505:/hello/server_error.html;
 		listen 		8.0.8.0 8080;
 		server_name foo.com www.foo.com;
 		root		html ;
 		index		hello.html;
 		max_body_size 3M;
+		location hello {
+				auto_index on;
+			
+		}
 		location \.php$ {
 			root /images/;
 			index hello hello.html;
 			auto_index off;
+			upload /hello/php;
 			allowed_methods POST DELETE;
 		}
 		location images { 
 			index hehhe;
 		}
 	}
-
 	server {
 		listen 80;
 		server_name domain2.com www.domain2.com;
