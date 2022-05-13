@@ -1,0 +1,99 @@
+
+- Concepts:
+
+	
+	* Connections handler:
+		objectif: managing the connections
+			- establishing new connection
+			- detecting connection failure
+			- closing connection
+			- listen for (read/write) on the connection
+			- close connection
+		
+		* Connection:
+			- each connection is defined by a fd
+
+
+		* Connection: two types of connections:
+			- listening connection:
+				* accept new client and create new data connection for it
+				* logs the new connection
+			- data connection:
+				* handle messaging between client and server
+				* a channel for (request / response)
+				* support pipelining
+				* capability of persistence
+				+ has two buffers: input and output
+					* read	request into input buffer
+					* write response to output buffer
+
+
+	* Executer:
+		+	request
+		+	response
+		
+		- using logger (for partial log)
+		- construct request
+			//	if (request.parse () is not ok)
+			//		generate an appropriate error response.
+			//	execute response
+		- generate response
+
+		- execute: has states
+			* parsing:
+				try parsing request
+				if there is an error 
+					set state to error state:
+				if (SL and HF are parsed)
+					set state to execute.
+			* error:
+				generate appropriate error response;
+				set state to sending state; 
+			* execute state
+				* depending on the request
+				* if payload is expected and request is not complete yet 
+					request.recvpayload ()
+				* apply URL mapping:
+					- redirection
+						generate redirection request;
+					- static file
+						generate static file request
+					- cgi
+						generate cgi request
+				* 
+			* sending
+				send the response throw the connection
+
+
+
+
+	* Message
+		+ start line
+		+ header fields
+		+ payload
+			; a buffer or a fd for storing ?	
+		* reusing capability
+			- reset message to blank
+	* Requist: Message
+		* abilities for Parsing
+			- request line (start line)
+			- header fields
+			- payload
+
+	* Response
+
+	* Configuration
+		- must be accessed from everywhere in the program
+		- two kind of configuration
+			* default confs
+			* user confs:
+				- some user confs can override some default confs.
+			- 
+	* Logger:
+		function:
+			- logging of partial (request | response)
+			- logging of new connection.
+		where:
+			- the logs files set in the confguration
+			- standard output / error
+	* CGI

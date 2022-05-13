@@ -1,0 +1,463 @@
+
+objectif: 	"response the client with the resource it requested,
+			 or inform it that the action it requested has been 
+			 carried out, or that an error occured in processing
+			 its request";
+
+* requirements:
+	- Static content serving
+	- support for http 1.0 and 1.1 
+	- Logging:
+		- error logs and connection logs
+	- Dynamic content serving:
+		- CGI
+	- virtual hosting:
+		- many websites using only ip address
+	- authorization:
+		- allow, forbid or to authorize access to portions of website paths
+	- Content Cache:
+		* cache static and/or dynamic content in order to speed up server responses;
+	- Custom error pages:
+		- support for customized HTTP error pages.
+
+* functioning:
+	1 - read and applies settings in its configuration file, (open log file...)
+		* one or more configuration files of web server may specify the mapping of 
+		* parts of URL path
+			- initial parts of file path
+			- filename extension
+			- other path components
+	2 - start listening to client connections/requests.
+	3 - manages client connections (accept and close)
+		* requirements:
+			* maintaining the state of current connections
+			* establishing a new connection 
+			* reusing an existing connection
+			* detecting connection failing 
+			* closing each connection
+			* maintin concurrent connections, while controling request queues 
+			* to anable fair use.
+			* detect DoS attacks
+		* Connection HF
+			connection			= 1#connection-option
+			connection-option	= token
+				"close": connection will be closed after completion of the request
+			* connection options are case-insensitive
+		* Persistence
+			- HTTP/1.1 use "persistence connections"
+			* connection type depends on the most recent received request
+				- HTTP version
+				- Connection HF
+				if (connection ["close"] == true )							-> not persist
+				if (protocol v >= 1.1)										-> persist
+				if (protocol v == 1.0 & connection ["keep-alive"] == true) 	-> persist
+				else
+																			-> not persist
+			* in persistance connection 
+				- all messages need to have a self defined msg length
+		* pipelining: /////
+		* concurrency /////
+			- server can limit the number of open connection from a single client Dos attack
+		* Failure and timeout
+			* a timeout value beyond which the server will no longer maintain 
+			* an inactive connection
+			* should constantly monitor open connections for received closure signal
+		* Tear-down
+			- close a connection in stages
+				1- perform half-close by closing only the write side of the read-write connection
+				2- continue to read from the connection until it receives a 
+				 	corresponding close by the client
+				3- the server fully closes the connection
+		* Upgrade
+			- ignore the received Upgrade HF
+	4 - receive client request:
+		- read and verify each request
+		- URL normalization
+			* resource path -> clean uniform path from root directory of website.
+			* conversion of URLs domain name to lowercase
+			* removal of "." and ".." path segments
+			* adding trailing slashes to the non-empty path component
+	
+		- URL mapping: process by which a URL is analyzed to figure out what resource it is referring to.
+			* figure out how that URL has to be handled
+				- URL redirection
+				- static request of file content
+				- dynamic request:
+					- directory listing.
+					- CGI	
+		- URL path translation
+			- Website s root directory may be specified by a configuration file.
+			- the web server appends the path found in the requested URL and appends it to the path of the -
+			- host website root directory (usually /var/www/website in linux). 
+
+	5 - executes or refuse requested method:
+		- URL authorization: verify the requested URL path
+			* freely accessible by everybody
+			* require a user authentication (username and psswrd)
+			* access is forbiden to some or all kind of users
+			-> deny access by sending (access forbiden)
+
+		- URL redirections
+			* replying to a client request msg with a response msg containing a new URL.
+			* used for:
+				- fix directory name by adding a final slash
+				- new URL for a no more existing URL path 
+				- new URL to another domain when current domain has too much load
+
+		- static resources:
+			- directory index files
+			- regular files
+		- dynamic resources:
+			- directory listings
+			- program or module processing
+		* Manage request message:
+			- if something in request is not acceptable 		-> send error response
+			- if URL require authorization 						-> authorization error message
+			- if URL maps to a redirection						-> redirect message
+			- if URL maps to dynamic resource					-> internal module or external program is called (CGI)
+			- if URL maps to static resource					-> internal static handler is called to send that file
+			- if request METHOD not know  or other condition	-> error response is sent 
+
+	6 - response:
+		- repliese to client request by sending proper HTTP response (requested msg or error)
+		- adding HTTP headers to those sent by dynamic programs
+		* serving static content:
+			- (URL mapping, URL translation, URL redirection) -> (if valid URL path == existing file) + (file attribute)
+		* directory listing:
+			-	if URL whose path matches one of an existing directory + is accessible 
+				+ serving directory index file is enabled -> serve the first configured index file
+		* serving dynammic content:
+			- web server must support POST method
+			- CGI:
+				- exteral CGI program is run for each request -> read the generated data -> resend it to client.
+		
+		* Error response:
+			- request msg could not be successfully read or decoded or analysed or executed -> error response
+			- two types or errors:
+				* HTTP client errors: request msg or the availability of requested web resource
+				* HTTP server errors: internal server errors
+	7 - logs:
+		- partial request/response to external user log file or to a system log file (syslog): common log format
+		- logs files might become full and crash the server
+	8 - performance:
+		* must be single process.
+		* should always be responsive.
+		- performance metrics:
+			* RPS: number of requests per second.
+			* CPS: number of connections per second accepted by the server.
+			* throughtput of responses: Bytes/s
+
+
+* configuration files in /etc/
+* Websites on /var/www/
+
+
+#### RFC 7230: HTTP/1.1: Message Syntax and Routing ######
+
+* http-version is case-sensitive
+HTTP-version 	= HTTP-name "/" DIGIT "." DIGIT
+HTTP-name		= "HTTP"
+
+first-digit	: major version: HTTP messaging Syntax
+second-digit: highest minor version within that major version, to which the sender
+			: is conformant and able to understand.
+
+A server SHOULD send a response version equal to the highest version to which
+the server is conformant that has a major version less than or equal to the received in requestet
+
+http-URI = "http:" "//" authority path-abempty [ "?" query ] [ "#" fragment]
+
+* if http URI has empty host identifier -> reject it as invalid
+* authority component = who has the right to respond authoritatively to requests 
+* that target the identified resource.
+----FORMAT MESSAGE ------
+* HTTP-message =	start-line
+				*( header-field CRLF )
+				CRLF
+				[ message-body ]
+
+* normal procedure for parsing an HTTP message:
+	- read the start line into a structure.
+	- read each header field into a hash table (until the empty line)
+	- use the parsed data to determine if a message body is expected.
+		- if yes: then it is read as a stream until an amount of octets equal to the
+				message body length is read or the connection is closed.
+	-  
+
+	* if there is whitespace between the start-line and the first header field 
+		-> reject the message as invalid
+	- start-line: 
+		* request-line
+			request-line = method SP request-target SP HTTP-version CRLF
+				method: case sensitive.
+			* parsing:
+				- splitting on whitespace.
+				- no predefined limit on the length of the request-line.
+				- if method is longer than any that it implements
+					-> 501 (Not implemented)
+				- if request-target is longer than any URI it wishes to parse
+					-> 414 (URI Too Long)
+				* RECOMMENDED request line lengths of 8000 octets.
+			* if request is invalid 
+				-> 400 (Bad request)
+	
+		* Status-line:
+			status-line = HTTP-version SP status-code SP reason-phrase SRLF
+			status-code = 3DIGIT
+			reason-phrase = *( HTAB / SP / VCHAR / obs-text )
+	
+	- Header Fields:
+		header-field	= field-name ":" OWS field-value OWS
+		
+		field-name		= token
+		field-value		= *( field-content / obs-fold )
+		field-content	= field-vchar [ 1*( SP / HTAB ) field-vchar ]
+		field-vchar		= VCHAR / obs-text
+		obs-fold		= CRLF	1* (SP / HTAB )
+
+		* good practice: send header fields that contain control data first (ex. DATE) 		
+
+		$$ must not apply a request to the target resource until the entire request
+		$$ header section is received.
+
+		* combine multiple header fields with the same field name into one "field-nm: field-vl" pair
+		* by appending each subsequent filed value separated by comma ( Set-Cookie is an execption)
+
+		* Parsing:
+			- parsing using generic algorithm, independant of the individual header field names
+			- the content within a given field value are not parsed until later stage of
+			- message interpretation.
+			- if there is WS between header field name and colon
+				-> 400 (Bad request)
+			- MUST NOT generate a message that includes line folding
+			- FIELD LIMITS: depends on the implementation
+				- excede -> 4XX (Client Error)
+			
+			- Field Value Components:
+				token	=	1*tchar
+				tchar	=	"!" / "#" / "$" / "%" / "&" / "’" / "*"
+                    		/ "+" / "-" / "." / "^" / "_" / "‘" / "|" / " ̃"
+                   			/ DIGIT / ALPHA
+				quoted-string 	= DQUOTE *(qdtext / quoted-pair ) DQUOTE
+				qdtext			= HTAB / SP /%x21 / %x23-5B / %x5D-7E / obs-text
+				obs-text		= %x80-FF
+				comment        = "(" *( ctext / quoted-pair / comment ) ")"
+				ctext          = HTAB / SP / %x21-27 / %x2A-5B / %x5D-7E / obs-text
+				quoted-pair    = "\" ( HTAB / SP / VCHAR / obs-text )
+	
+	- Massage Body
+		* the message body is identical to the payload body unless a transfer coding
+		* has been applied
+			message-body = *OCTET
+		* the request has message body only if one of those header field is present:
+			- Content-length
+
+			- Transfer-Encoding
+				Transfer-Encoding = 1#transfer-coding
+				* must not send a send a Transfer-Encoding header field in any response
+					- 1XX (Informational)
+					- 204 (No Conetent)
+					- 200 (OK) response to a CONNECT request
+					- request HTTP version is less than 1.1
+				* if the server does not understand the transfer-Encoding in a request
+					-> 501 (Not implemented)
+			- Content-length
+				Content-length = 1*DIGIT
+				* for messages that do not include a payload body, the content length 
+					indicates the size of the selected representation
+				- MUST NOT send Content-length:
+					* if Transfer-Encoding is present
+					* any response to 
+						- 1XX (Informational)
+						- 204 (No Content) 
+						- 2XX response to CONNECT request
+				- aside from the cases above if there is no Transfer-Encoding
+					-> Content length should be sent
+				- Content-length >= 0 -> potential overflows
+		* Message Body length
+			* the length of message body is determined:
+				1- HEAD request | 1xx | 204 | 304 -> no message body
+				2- 2xx response to CONNECT
+				3-  *if Transfer-Encoding == chunked: reading and decoding to get data
+					* if Transfer-Encoding is present and chaunked is not 
+					the final enoding -> 400 (Bad request response)
+				4- if Content-length is invalid -> 400 (Bad request) response.
+			* should generate encoding or length-delemeted msg whenever possible
+			* if request body is present and no Content-length -> 411 (length required)
+		 
+		* request message body is independant of method semantics
+		* the presence of message body in a response depends on:
+			- request method to which it is responding
+				* response to HEAD request never include msg body
+			- response status code
+				* 1XX (Informational)
+				* 204 (No Conetent)
+				* 304 (Not modified)
+	- Incomplete msgs handling:
+		- incomplete request message: due to canceled request, triggered timeout execption
+			-> error response prior to closing the connection
+		- message is incomplete if: 
+			- zero-sized chunk of Transfer-Encoding is not received
+			- Content-length > sizeof msg body
+
+* Transfer Codings:
+	transfer-coding    = "chunked" / "compress" / "deflate" / "gzip" / transfer-extension
+    transfer-extension = token *( OWS ";" OWS transfer-parameter )
+	transfer-parameter = token BWS "=" BWS ( token / quoted-string )
+
+	* transfer-Encoding names are case-insensitive
+	- Chunked:
+		* sytax:
+			chunked-body	=	*chunk
+								last-chunk
+								trailer-part
+								CRLF
+			chunk		 	=	chunk-size [ chunk-ext ] CRLF
+								chunk-data 
+								CRLF
+			chunk-size	 	=	1*HEXDIG
+			last-chunk	 	=	1* ("0") [ chunk-ext ] CRLF
+			chunk-data	 	=	1*OCTET
+			chunk-ext	 	=	*( ";" chunk-ext-name [ "=" chunk-ext-val ] ) #Must ignore unrecognize chunk extensions
+			chunk-ext-name	=	token
+			chunk-ext-val	=	token / quoteded-string
+			trailer-part	=	*( header-filed CRLF)
+		* decoding:
+			length = 0
+			read chunk-size, chunk, ext (if any), and CRLF
+			while (chunk-size > 0) {
+				read chunk-data and CRLF
+				append chunk-data to decoded-body
+				length = length + chunk-size
+				read chunk-size, chunk, ext (if any), and CRLF
+			}
+			read trailer field
+			while (trailer filed is not empty) {
+				if (trailer field is allowed to be sent in a trainer) {
+					append trailer filed to existing header fields
+				}
+				read trailer-field
+			}
+			Conten-length = length
+			remove "chunked" from Transfer-Encoding
+			remove Trailer from existing header fields
+
+* message Routining
+	- format of request-target:
+		request-target	= origin-form | absolute-form | authority-form | asterisk-form
+
+		origin-form		= absolute-path [ "?" query ]
+		absolute-form	= absolute-URI
+		
+		authority-form	= authority		#used only for CONNECT request
+		asterisk-form	= "*"
+	- Host header-field
+		* provide host and port information
+		Host = uri-host [ ":" port ]
+		* if version == HTTP/1.1 and (no Host HF || many Host HF || invalid Host HF)
+			-> 400 (Bad request)
+
+* associating a Response to a Request
+	* More than one response message per request only occurs 
+	* when one or more informational responses (1XX) preced a final
+	* response to the same request
+
+############ (HTTP/1.1): Semantics and Content ##################
+
+* Representation Metadata
+	- Content-Type:
+		* use of Internet media-types in Content-type and Accept HFs.
+		media-type	= type "/" subtype * ( OWS ";" OWS parameter)
+		type		= token
+		subtype		= token
+		parameter	= token "=" ( token / quoted-string )
+		* type, subtype, parameter are case-insensitive
+		* "Content-Type" HF indecates the media type of the associated representation
+			- the representation enclosed in the message payload
+			- selected representation
+		* media type: data format and how that data is intended to be processed
+		Content-Type = media-type
+		+ if (Content-Type HF is not present in request)
+			Content-type = "application/octet-stream"
+	- Content-Encoding:
+		Content-Encoding: 1#content-coding
+		Content-coding = compress | x-compress | deflate | gzip
+	- Content-Language:
+		Content-Language: 1#language-tag
+	- Content-Location:
+		* reference a URI that can be used as an identifier for a specific resource 
+		* corresponding to the representation in the msg payload.
+
+* Representation Data:
+	representation-data = Content-Encoding (Content-Type (bits))
+
+	representation in the payload of PUT: the desired state of the target resource
+	representation in the payload of POST: information to be processed by the target resource
+
+	payload of 200 response to GET: current state of the target resource
+	payload of 200 response to POST:
+		- processing result or
+		- new state of the target
+	payload response msg of an error status code: error condition
+	
+	* Payload header fields:
+		- Content-Lenght
+		- Content-Range
+		- Trailer
+		- Transfer-Encoding
+
++ Request-Methods:
+	* case sensitive
+	+ GET		:
+		- Transfer a current representation of the target resource.
+		- safe	
+		- idempotent
+		- must be optimized 
+		* A payload within a GET request message has no defined semantics
+	+ HEAD		: 
+		- same as GET, only transfer SL and HFS.
+		- safe
+		- idempotent
+		* must not send a message body in the response
+	+ POST		:
+		- Perform resource-specific processing on the request payload.
+		- if resources nas been created on the server:
+			-> 201 (Created) + Location HF (identifier of the resource created)
+
+	- PUT 		:
+		- Replace all current representations of the target resource with the request payload.
+		- idempotent
+	+ DELETE	:
+		- remove all current representation of the target resource.
+		- idempotent
+		-> 202
+		-> 204
+		-> 200
+		- Payload in DELETE request -> reject request
+	- OPTIONS		:
+		- Describe the communication options for the target resource.
+		- safe
+	
+	if (RM is unrecognized or not implemented)
+		-> 501 (NOT Implemented)
+	if (RM is know but now allowed)
+		-> 405 (Not Allowed)
+	
+	* Request header fields:
+		- Content Negotiation
+			* Accept
+			* Accept-Charset
+			* Accept-Encoding
+			* Accept-Language
+		- Request Context
+			* From:
+				- Internet email address for a human user who controls the requesting user agent
+			* Referer:
+				- specify a URI reference for the resource from which the target URI was obtained
+			* User-Agent:
+				- contains information about the user agent originating the request
+
+CGI : Common Gateway interface
+
+
+		
