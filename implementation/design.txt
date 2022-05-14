@@ -82,14 +82,14 @@
 
 	* Response
 
-	* Configuration
+	* Configuration: gloabbaly accessed
 		- must be accessed from everywhere in the program
 		- two kind of configuration
 			* default confs
 			* user confs:
 				- some user confs can override some default confs.
 			- 
-	* Logger:
+	* Logger: must be gloabbaly accessed
 		function:
 			- logging of partial (request | response)
 			- logging of new connection.
@@ -97,3 +97,5 @@
 			- the logs files set in the confguration
 			- standard output / error
 	* CGI
+
+	
