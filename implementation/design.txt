@@ -99,3 +99,6 @@
 	* CGI
 
 	
+* many objects share the same instance of configuration
+* so configuration will be a singleton function 
+	

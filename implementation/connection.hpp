@@ -5,6 +5,8 @@
 #include <map>
 #include "Circullar_Buffer.hpp"
 #include "Message.hpp"
+#include <poll.h>
+#include <string>
 
 enum State {
 			PARSING,
@@ -13,39 +15,49 @@ enum State {
 			EXECUTE,
 			CLOSE
 			};
+ 
 
-enum Event {
-			READ,
-			WRITE
-			};
+class Event {
+	private:
+		int event;
+	public:
+		Event	(int e): event (e & (POLLIN | POLLOUT)) {}
+		~Event	(){}
+		operator bool () const { return event; }
+		bool operator == (int e) const { return (event & e); }
+};
 
 class Connection {
 	protected:
-		int			fd;
-		State		state;
+		std::string		type;
+		int				fd;
+		State			state;
 	public:
-		Connection (int _fd): fd (_fd) {}
+		Connection (int _fd, const std::string& _type): fd (_fd), type (_type) {}
+		const std::string& getType () const;
 		void setState (State st) { state = st; }
 		int getFd () const { return fd; }
+		const std::string& getType () const { return type; }
 		State getState () const { return state; }
 		virtual ~Connection () {}
-		virtual void execute (Event e);
 };
 
 class ListenConnection: public Connection {
 	public:
 		ListenConnection (int fd);
-		std::vector<dataConnection*> listen();
+		~ListenConnection () {}
+		bool listen(std::map<int, Connection*>&, std::vector<struct pollfd>&);
 };
 
 
 class dataConnection: public Connection {
 	private:
+		Activity		active;
 		//Activity		active;		// storing the last time 
 									// event of read has been 
 									// declared on the connection
-		Request			rq;
-		Response		rs;
+		// Request			rq;
+		// Response		rs;
 		Buffer			input;
 		Buffer			output;
 	public:
@@ -57,16 +69,23 @@ class dataConnection: public Connection {
 		// }
 };
 
-class Connection_handler {
+
+class ConnectionsHandler {
 	private:
-		//std::vector <
-		std::map <int, Connection *> Connections;
+		std::vector <struct pollfd>		pollfds;
+		std::map <int, Connection *>	cons;
+		//Logger 		logger;
 	public:
-		Connection_handler () {}
-		void add_Listenconnection (ListenConnection x) {};
-		void start () {
-		}
+		ConnectionsHandler ();
+		~ConnectionsHandler ();
+		bool addListenConnection (ListenConnection *con);
+		void start ();
 };
 
+
+
+class Activity {
+
+};
 
 #endif
