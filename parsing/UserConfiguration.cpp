@@ -1,25 +1,6 @@
-#include "Configuration.hpp"
+#include "UserConfiguration.hpp"
 #include <arpa/inet.h>
 #include "utils.hpp"
-
-std::map <std::string, COMP> NameOfComponent () {
-	std::map <std::string, COMP> mp;
-	mp.insert (std::make_pair ("listen", LISTEN));
-	mp.insert (std::make_pair ("root", ROOT));
-	mp.insert (std::make_pair ("index", INDEX));
-	mp.insert (std::make_pair ("auto_index", AUTOINDEX));
-	mp.insert (std::make_pair ("max_body_size", BODYSIZE));
-	mp.insert (std::make_pair ("allowed_methods", ALLOWEDMETHODS));
-	mp.insert (std::make_pair ("error_page", ERRORPAGES));
-	mp.insert (std::make_pair ("server_name", SERVERNAMES));
-	mp.insert (std::make_pair ("location", LOCATION));
-	mp.insert (std::make_pair ("server", SERVER));
-	mp.insert (std::make_pair ("http", HTTPCONFIG));
-	mp.insert (std::make_pair ("upload", UPLOAD));
-	return mp;
-}
-
-std::map <std::string, COMP> ComponentCreator::mp = NameOfComponent ();
 
 Component::Component (const std::string& dir, bool sin, unsigned _sub):  _sin (sin), _dir (dir), _subs (_sub) {}
 Component::Component (const Component& _rhs): _sin (_rhs._sin), _dir (_rhs._dir), _subComp (_rhs._subComp){}
@@ -41,7 +22,7 @@ bool Component::isSet () const {
 }
 
 bool Component::isSub (const std::string& dir) const {
-	return (_subs & ComponentCreator::instance ().id (dir));
+	return (_subs & ComponentCreator::instance ()->id (dir));
 }
 
 Component* Component::getSimpleAttribute (const std::string& dir) const {
@@ -110,7 +91,7 @@ void BracketedComponent::syntax_parse (Tokenizer& tokenizer) {
 				if (((*it).second)->sin ())
 					throw Error (tokenizer.error ("only one component allowed"));
 			}
-			Component * comp = ComponentCreator::instance ().create (id);
+			Component * comp = ComponentCreator::instance ()->create (id);
 			comp->syntax_parse (tokenizer);
 			_subComp.insert (std::make_pair (id, comp));
 		}
@@ -152,7 +133,7 @@ void SuffixBracketedComponent::syntax_parse (Tokenizer& tokenizer) {
 				if (((*it).second)->sin ())
 					throw Error (tokenizer.error ("only one component allowed"));
 			}
-			Component * comp = ComponentCreator::instance ().create (id);
+			Component * comp = ComponentCreator::instance ()->create (id);
 			comp->syntax_parse (tokenizer);
 			_subComp.insert (std::make_pair (id, comp));
 		}
@@ -447,3 +428,78 @@ void ServerNames::print (std::string tabulation) const {
 		std::cout << *it << " ";
 	}
 }
+
+
+// Component creator
+// a singlton that can generate any configuration
+// component
+std::map <std::string, COMP> NameOfComponent () {
+	std::map <std::string, COMP> mp;
+	mp.insert (std::make_pair ("listen", LISTEN));
+	mp.insert (std::make_pair ("root", ROOT));
+	mp.insert (std::make_pair ("index", INDEX));
+	mp.insert (std::make_pair ("auto_index", AUTOINDEX));
+	mp.insert (std::make_pair ("max_body_size", BODYSIZE));
+	mp.insert (std::make_pair ("allowed_methods", ALLOWEDMETHODS));
+	mp.insert (std::make_pair ("error_page", ERRORPAGES));
+	mp.insert (std::make_pair ("server_name", SERVERNAMES));
+	mp.insert (std::make_pair ("location", LOCATION));
+	mp.insert (std::make_pair ("server", SERVER));
+	mp.insert (std::make_pair ("http", HTTPCONFIG));
+	mp.insert (std::make_pair ("upload", UPLOAD));
+	return mp;
+}
+
+std::map <std::string, COMP> ComponentCreator::mp = NameOfComponent ();
+
+ComponentCreator::ComponentCreator () {};
+
+ComponentCreator *ComponentCreator::creator = 0x0;
+
+ComponentCreator* ComponentCreator::instance () {
+	if (!creator)
+		creator = new ComponentCreator ();
+	return creator;
+}
+
+COMP ComponentCreator::id (const std::string & _dir) {
+	std::map<std::string, COMP>::const_iterator it = mp.find (_dir);
+	if (it == mp.end ()) return UNKNOWN;
+	return (*it).second;
+}
+
+Component	*ComponentCreator::create (COMP c) {
+	switch (c) {
+		case LISTEN:
+			return new Listen ();
+		case ROOT:
+			return new Root ();
+		case INDEX:
+			return new Index ();
+		case AUTOINDEX:
+			return new AutoIndex ();
+		case BODYSIZE:
+			return new BodySize ();
+		case ALLOWEDMETHODS:
+			return new AllowedMethods ();
+		case ERRORPAGES:
+			return new ErrorPages ();
+		case SERVERNAMES:
+			return new ServerNames ();
+		case LOCATION:
+			return new SuffixBracketedComponent ("location", false, ROOT | INDEX | AUTOINDEX | ALLOWEDMETHODS | UPLOAD);
+		case SERVER:
+			return new BracketedComponent ("server", false, LISTEN | ROOT | INDEX | ERRORPAGES | SERVERNAMES | BODYSIZE | LOCATION);
+		case HTTPCONFIG:
+			return new BracketedComponent ("http", true, INDEX | ROOT | SERVER);
+		case UPLOAD:
+			return new Upload ();
+		default:
+			return 0x0;
+	}
+}
+
+Component	*ComponentCreator::create (const std::string& _dir) {
+	return create (id (_dir));
+}
+

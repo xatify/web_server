@@ -3,10 +3,11 @@
 
 #include <vector>
 #include <map>
-#include "Circullar_Buffer.hpp"
+#include "Buffer.hpp"
 #include "Message.hpp"
-#include <poll.h>
 #include <string>
+#include "Activity.hpp"
+#include "Event.hpp"
 
 enum State {
 			PARSING,
@@ -17,15 +18,7 @@ enum State {
 			};
  
 
-class Event {
-	private:
-		int event;
-	public:
-		Event	(int e): event (e & (POLLIN | POLLOUT)) {}
-		~Event	(){}
-		operator bool () const { return event; }
-		bool operator == (int e) const { return (event & e); }
-};
+
 
 class Connection {
 	protected:
@@ -49,24 +42,17 @@ class ListenConnection: public Connection {
 		bool listen(std::map<int, Connection*>&, std::vector<struct pollfd>&);
 };
 
-
 class dataConnection: public Connection {
 	private:
+		std::string		input;
+		// Buffer			input;
+		// Buffer			output;
 		Activity		active;
-		//Activity		active;		// storing the last time 
-									// event of read has been 
-									// declared on the connection
-		// Request			rq;
+		Request		rq;
 		// Response		rs;
-		Buffer			input;
-		Buffer			output;
 	public:
 		dataConnection (int fd);
-		void execute (Event e); //{
-		// 	switch (state) {
-	
-		// 	}
-		// }
+		void execute (Event e);
 };
 
 
@@ -74,7 +60,6 @@ class ConnectionsHandler {
 	private:
 		std::vector <struct pollfd>		pollfds;
 		std::map <int, Connection *>	cons;
-		//Logger 		logger;
 	public:
 		ConnectionsHandler ();
 		~ConnectionsHandler ();
@@ -82,10 +67,5 @@ class ConnectionsHandler {
 		void start ();
 };
 
-
-
-class Activity {
-
-};
 
 #endif

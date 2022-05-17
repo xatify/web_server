@@ -1,16 +1,17 @@
 #ifndef __ACTIVITY_HPP__
 #define __ACTIVITY_HPP__
 
+#include <sys/time.h>
+
 class Activity {
 	private:
-		unsigned long active;
+		struct timeval time; 
 	public:
 		Activity ();
 		~Activity ();
 		bool timeOut () const;
-		void setActive ();
+		void reset ();
 };
 
 
-class 
 #endif

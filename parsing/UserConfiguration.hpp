@@ -1,5 +1,5 @@
-#ifndef __CONFIGURATION_HPP__
-#define __CONFIGURATION_HPP__
+#ifndef __USER_CONFIGURATION_HPP__
+#define __USER_CONFIGURATION_HPP__
 
 #include "tokenizer.hpp"
 #include <string>
@@ -9,7 +9,7 @@
 
 enum COMP {
 	UNKNOWN			=		0,
-	LISTEN 			=		1,
+	LISTEN 			=		1 << 0,
 	ROOT			=		1 << 1,
 	INDEX			=		1 << 2,
 	AUTOINDEX		= 		1 << 3,
@@ -248,52 +248,18 @@ class ServerNames: public SimpleComponent {
 		void parse (Tokenizer& );
 };
 
+
+
 class ComponentCreator {
 	private:
-		ComponentCreator () {};
+		static ComponentCreator *creator;
+		ComponentCreator ();
 		static std::map <std::string, COMP> mp; 
 	public:
-		COMP					id (const std::string & _dir) {
-			std::map<std::string, COMP>::const_iterator it = mp.find (_dir);
-			if (it == mp.end ()) return UNKNOWN;
-			return (*it).second;
-		}
-		Component				*create (COMP c) {
-			switch (c) {
-				case LISTEN:
-					return new Listen ();
-				case ROOT:
-					return new Root ();
-				case INDEX:
-					return new Index ();
-				case AUTOINDEX:
-					return new AutoIndex ();
-				case BODYSIZE:
-					return new BodySize ();
-				case ALLOWEDMETHODS:
-					return new AllowedMethods ();
-				case ERRORPAGES:
-					return new ErrorPages ();
-				case SERVERNAMES:
-					return new ServerNames ();
-				case LOCATION:
-					return new SuffixBracketedComponent ("location", false, ROOT | INDEX | AUTOINDEX | ALLOWEDMETHODS | UPLOAD);
-				case SERVER:
-					return new BracketedComponent ("server", false, LISTEN | ROOT | INDEX | ERRORPAGES | SERVERNAMES | BODYSIZE | LOCATION);
-				case HTTPCONFIG:
-					return new BracketedComponent ("http", true, INDEX | ROOT | SERVER);
-				case UPLOAD:
-					return new Upload ();
-				default:
-					return 0x0;
-			}
-		}
-		Component				*create (const std::string& _dir) { return create (id (_dir)); } 
-		
-		static ComponentCreator& instance () {
-			static ComponentCreator *singleton = new ComponentCreator ();
-			return *singleton;
-		}
+		COMP					id (const std::string & _dir);
+		Component				*create (COMP c);
+		Component				*create (const std::string& _dir);
+		static ComponentCreator *instance ();
 };
 
 #endif

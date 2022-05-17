@@ -1,5 +1,6 @@
 #include "Connection.hpp"
 #include <sys/socket.h>
+#include "Configuration.hpp"
 #include <fcntl.h>
 
 ListenConnection::ListenConnection (int fd): Connection (fd, "listen") {}
@@ -12,7 +13,10 @@ bool ListenConnection::listen (std::map<int, Connection*>& connections, std::vec
 	do {
 		new_fd = ::accept (fd, 0x0, 0x0);
 		if (new_fd < 0) break;
-		//fcntl (new_fd, F_SETFL, O_NONBLOCK);
+		// set non blocking mode on new_fd
+		int flags = fcntl (new_fd, F_GETFL);
+		flags |= O_NONBLOCK;
+		fcntl (new_fd, F_SETFL, flags);
 		accepted = true;
 		connections.insert (std::make_pair(new_fd, new dataConnection (new_fd)));
 		pollstrct.fd = new_fd;
@@ -23,10 +27,8 @@ bool ListenConnection::listen (std::map<int, Connection*>& connections, std::vec
 }
 
 dataConnection::dataConnection (int fd): Connection (fd, "data") {
-	// handling of set start time
-	// 
+	Configuration::instance ()->getLogger ().AccessLog (*this);
 }
-
 
 ConnectionsHandler::ConnectionsHandler () {
 	//initaite
@@ -47,9 +49,9 @@ bool ConnectionsHandler::addListenConnection (ListenConnection *con) {
 }
 
 void ConnectionsHandler::start () {
-std::vector <struct pollfd> 		newpolls;
+	std::vector <struct pollfd> 		newpolls;
 	if (cons.empty ()) {
-		// log: no listen connections;
+		Configuration::instance ()->getLogger ().AccessLog ("no connection to listen to\n");
 		return;
 	}
 	do {
@@ -86,24 +88,43 @@ std::vector <struct pollfd> 		newpolls;
 
 
 void dataConnection::execute (Event e) {
-	if (e == POLLIN)
-		input.read ();
-	if (e == POLLOUT)
-		output.write ();
+	if (e == READ) {
+		size_t size = 1025;
+		char *buff = new char [size];
+		size_t rd = ::read (getFd (), buff, size);
+		if (rd <= 0) {
+			delete [] buff;
+			state = CLOSE;
+		}
+		input.append (buff, buff + rd);
+	}
+	//if (e == WRITE)
+	// 	output.write ();
 	
-	if (input.isclosed () || output.isclosed ())
-		state = CLOSE;
+	// if (input.isclosed () || output.isclosed ())
+	// 	state = CLOSE;
 	switch (state) {
 		PARSING:
-			if (rq.parse (input) < 0) // if there is error in parsing
-				state = ERROR;
-			if (rq.isdone ())
+			if (!rq.isParsed ()) {
+				std::string::size_type n = input.find ("\r\n");
+				if (n != std::string::npos) {
+					if (rq.parse (input.substr (0, n)) == false) {
+						// state = ERROR
+						
+					}
+					else {
+						input.assign (input.begin () + n + 2, input.end ());
+					}
+				}
+				// else if (input.size () > SOMEMAXVALUE)
+				// 		state = ERROR
+			}
+			else
 				state = EXECUTE;
-			break;
 		ERROR:
 			// generate appropriate Response
-			state = SENDING;
-			break;
+			// state = SENDING;
+			// break;
 		EXECUTE:
 			// depending on the request
 			// if payload is expected and request is not complete yet

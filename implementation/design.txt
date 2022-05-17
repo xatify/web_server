@@ -74,6 +74,9 @@
 			; a buffer or a fd for storing ?	
 		* reusing capability
 			- reset message to blank
+		* queue for receiving data or sending data
+		* that handles read/write syscalls
+		
 	* Requist: Message
 		* abilities for Parsing
 			- request line (start line)
@@ -82,13 +85,15 @@
 
 	* Response
 
-	* Configuration: gloabbaly accessed
-		- must be accessed from everywhere in the program
-		- two kind of configuration
-			* default confs
-			* user confs:
-				- some user confs can override some default confs.
-			- 
+	* CGI
+
+* Configuration: gloabbaly accessed
+	- must be accessed from everywhere in the program
+	- two kind of configuration
+		* default confs
+		* user confs:
+			- some user confs can override some default confs.
+		- 
 	* Logger: must be gloabbaly accessed
 		function:
 			- logging of partial (request | response)
@@ -96,9 +101,8 @@
 		where:
 			- the logs files set in the confguration
 			- standard output / error
-	* CGI
 
-	
+
 * many objects share the same instance of configuration
 * so configuration will be a singleton function 
 	
