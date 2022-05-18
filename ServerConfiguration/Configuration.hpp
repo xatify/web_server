@@ -8,14 +8,14 @@ class Configuration {
 	private:
 		static Configuration		*conf;
 		Component 					*UserHttpConfig;
-		//const unsigned int			keepalive = 75;
+		static const unsigned int	keepalive = 75;
 		Logger						logger;
 		Configuration (const char *config_file);
 
 	public:
 		static	Configuration* instance (const char *config_file= 0x0);
-		const Logger& getLogger () const;
-		//const unsigned int keepAlive() const;
+		Logger& getLogger ();
+		const unsigned int keepAlive() const;
 		Component *getConfigurations () const;
 };
 

@@ -37,6 +37,6 @@ Configuration::Configuration (const char *config_file) {
 
 Component *Configuration::getConfigurations () const { return UserHttpConfig; }
 
-//const unsigned int Configuration::keepAlive () const { return keepalive; }
+const unsigned int Configuration::keepAlive () const { return keepalive; }
 
-//const Logger& Configuration::getLogger () const { return logger; }
+Logger& Configuration::getLogger () { return logger; }
