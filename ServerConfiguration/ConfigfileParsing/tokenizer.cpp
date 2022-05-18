@@ -1,7 +1,9 @@
 #include "tokenizer.hpp"
-#include <fstream>
+
+#include "tokens.hpp"
 #include <iostream>
 #include <unistd.h>
+
 
 Error::Error (const std::string& _error): error (_error) {}
 
@@ -90,4 +92,12 @@ void Tokenizer::print_tokens () const {
 	for (std::vector<Token>::const_iterator it = tokens.cbegin (); it != tokens.cend (); ++it) {	
 		std::cout << *it;
 	}
+}
+
+std::string Tokenizer::error (const char *error) const {
+	return (*current).status (error);
+}
+
+const std::string& Tokenizer::id () const {
+	return (*current).id ();
 }

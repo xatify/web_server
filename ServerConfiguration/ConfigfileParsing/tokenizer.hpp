@@ -1,10 +1,11 @@
 #ifndef __TOKENIZER_HPP_
 #define __TOKENIZER_HPP_
 
-#include "tokens.hpp"
 #include <exception>
 #include <vector>
 #include <fstream>
+
+class Token;
 
 struct Error: public std::exception  {
 	std::string error;
@@ -23,10 +24,10 @@ class Tokenizer {
 	public:
 		Tokenizer (const char  *file);
 		~Tokenizer ();
-		std::string error (const char *error) const { return (*current).status (error); } 
+		std::string error (const char *error) const;
 		void tokenize ();
 		bool ready () const;
-		const std::string& id () const { return (*current).id (); }
+		const std::string& id () const;
 		void print_tokens () const;
 		void expect (const std::string& id);
 		const Token& operator *() const;
