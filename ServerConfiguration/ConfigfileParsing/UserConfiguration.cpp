@@ -41,6 +41,17 @@ std::vector<Component *> Component::getSubComponents (const std::string& dir) co
 	return _subs;
 }
 
+void Component::addSubComponent (Component *sub) {
+	if (isSub (sub->dir ())) {
+		std::multimap <std::string, Component *>::iterator it = _subComp.find (sub->dir ());
+		if (it != _subComp.end ()) {
+			if (((*it).second)->sin ())
+				return;
+		}
+		_subComp.insert (std::make_pair (sub->dir (), sub));
+	}
+}
+
 SimpleComponent::SimpleComponent (const std::string& _dir, bool sin): Component (_dir, sin) {}
 SimpleComponent::SimpleComponent (const SimpleComponent& _rhs): Component (_rhs) {}
 SimpleComponent& SimpleComponent::operator = (const SimpleComponent& _rhs) {
@@ -175,7 +186,7 @@ void Address::parse (Tokenizer& tokenizer) {
 	}
 }
 
-Port::Port ():  is_set (false), port (0) {}
+Port::Port ():  is_set (false), port (80) {}
 Port::Port (const Port& _rhs): is_set (_rhs.is_set), port (_rhs.is_set) {}
 Port& Port::operator= (const Port& _rhs) {
 	if (this != &_rhs) {

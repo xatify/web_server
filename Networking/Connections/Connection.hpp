@@ -3,11 +3,11 @@
 
 #include <vector>
 #include <map>
-#include "Buffer.hpp"
-#include "Message.hpp"
 #include <string>
-#include "Activity.hpp"
-#include "Event.hpp"
+#include "../Activity/Activity.hpp"
+#include "../Event/Event.hpp"
+#include "../../Request/Request.hpp"
+#include "../../ServerConfiguration/Configuration.hpp"
 
 enum State {
 			PARSING,
@@ -38,17 +38,15 @@ class Connection {
 class ListenConnection: public Connection {
 	public:
 		ListenConnection (int fd);
-		~ListenConnection () {}
+		~ListenConnection () {};
 		bool listen(std::map<int, Connection*>&, std::vector<struct pollfd>&);
 };
 
 class dataConnection: public Connection {
 	private:
-		std::string		input;
-		// Buffer			input;
-		// Buffer			output;
+		std::string		input; // buffer for the input from the socket
 		Activity		active;
-		Request		rq;
+		Request			rq;
 		// Response		rs;
 	public:
 		dataConnection (int fd);
@@ -60,10 +58,11 @@ class ConnectionsHandler {
 	private:
 		std::vector <struct pollfd>		pollfds;
 		std::map <int, Connection *>	cons;
+		bool setUp ();
+		bool addListenConnection (ListenConnection *con);
 	public:
 		ConnectionsHandler ();
 		~ConnectionsHandler ();
-		bool addListenConnection (ListenConnection *con);
 		void start ();
 };
 

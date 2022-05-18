@@ -15,23 +15,16 @@ class Addr {
 };
 
 
-class Socket {
+class ListenSocket {
 	protected:
 		int		fd;
 	public:
-		Socket (int);
-		Socket ();
+		ListenSocket (int);
+		ListenSocket ();
 		int getFd () const;
+		bool bind (const Addr&, int backlog = 15);
 		void close ();
 };
-
-
-class ListenSocket: public Socket {
-	public:
-		ListenSocket ();
-		bool bind (const Addr&, int backlog = 15);
-};
-
 
 
 #endif

@@ -1,7 +1,9 @@
 #include "Connection.hpp"
 #include <sys/socket.h>
-#include "Configuration.hpp"
 #include <fcntl.h>
+#include <unistd.h>
+#include "../../Sockets/socket.hpp"
+#include <set>
 
 ListenConnection::ListenConnection (int fd): Connection (fd, "listen") {}
 
@@ -48,42 +50,76 @@ bool ConnectionsHandler::addListenConnection (ListenConnection *con) {
 	return false;
 }
 
-void ConnectionsHandler::start () {
-	std::vector <struct pollfd> 		newpolls;
-	if (cons.empty ()) {
-		Configuration::instance ()->getLogger ().AccessLog ("no connection to listen to\n");
-		return;
+
+bool ConnectionsHandler::setUp () {
+	std::set<std::pair<u_int32_t, u_int16_t> > listens;
+
+	std::vector<Component *> Vservers (Configuration::instance ()->getConfigurations ()->getSubComponents ("server"));
+	for (std::vector<Component *>::iterator it = Vservers.begin (); it != Vservers.end (); ++it) {
+		Listen		*listen = dynamic_cast <Listen *> ((*it)->getSimpleAttribute ("listen"));
+		listens.insert (std::make_pair (listen->getAddress (), listen->getPort ()));
 	}
-	do {
-		pollfds.insert (pollfds.end (), newpolls.begin (), newpolls.end ());
-		newpolls.clear();
-		int ret = ::poll (&(pollfds[0]), pollfds.size (), -1);
-		for (std::vector<struct pollfd>::iterator it = pollfds.begin (); it != pollfds.end (); ++it) {
-			
-			Event event (it->revents);
-			if (!event) {
-				//  using Activity class of the connection
-				// if it is a dataConnection and it timeouted close it
-				// and log the close event
-				continue;
-			}
-			
-			Connection *connection = cons.find (it->fd)->second;
-			if (connection->getType () == "listen") {
-				ListenConnection *Listen = dynamic_cast<ListenConnection*>(connection);
-				if (Listen) {
-					if (Listen->listen (cons, newpolls) == false) {
-						//error shutdow the server
-						//return;
+	std::vector <ListenConnection *> listenCons;
+	bool error = false;
+	for (std::set<std::pair<u_int32_t, u_int16_t> >::const_iterator it = listens.begin (); it != listens.end (); ++it) {
+		Addr 			addr ((*it).second, (*it).first);
+		ListenSocket	sock;
+		if (sock.getFd () < 0) {
+			error = true;
+			break;
+		}
+		if (!sock.bind (addr)) {
+			sock.close ();
+			error = true;
+			break;
+		}
+	}
+	for (std::vector<ListenConnection *>::iterator it = listenCons.begin (); it != listenCons.end (); ++it) {
+		if (error) delete (*it);
+		else
+			addListenConnection (*it);
+	}
+	return !error;
+}
+
+void ConnectionsHandler::start () {
+	if (setUp ()) {
+		std::vector <struct pollfd> 		newpolls;
+		if (cons.empty ()) {
+			Configuration::instance ()->getLogger ().AccessLog ("no connection to listen to\n");
+			return;
+		}
+		do {
+			pollfds.insert (pollfds.end (), newpolls.begin (), newpolls.end ());
+			newpolls.clear();
+			int ret = ::poll (&(pollfds[0]), pollfds.size (), -1);
+			for (std::vector<struct pollfd>::iterator it = pollfds.begin (); it != pollfds.end (); ++it) {
+				
+				Event event (it->revents);
+				if (!event) {
+					//  using Activity class of the connection
+					// if it is a dataConnection and it timeouted close it
+					// and log the close event
+					continue;
+				}
+				
+				Connection *connection = cons.find (it->fd)->second;
+				if (connection->getType () == "listen") {
+					ListenConnection *Listen = dynamic_cast<ListenConnection*>(connection);
+					if (Listen) {
+						if (Listen->listen (cons, newpolls) == false) {
+							//error shutdow the server
+							//return;
+						}
 					}
 				}
+				else {
+					dataConnection *Data = dynamic_cast <dataConnection*> (connection);
+					Data->execute (event);
+				}
 			}
-			else {
-				dataConnection *Data = dynamic_cast <dataConnection*> (connection);
-				Data->execute (event);
-			}
-		}
-	}while (true);
+		}while (true);
+	}
 }
 
 

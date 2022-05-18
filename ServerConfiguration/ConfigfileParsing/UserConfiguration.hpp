@@ -36,6 +36,7 @@ class Component {
 		bool isSub (const std::string&) const;
 		Component *getSimpleAttribute (const std::string& dir) const;
 		std::vector<Component *> getSubComponents(const std::string& dir) const;
+		void addSubComponent (Component *);
 		Component& operator = (const Component&);
 		virtual ~Component ();
 		const std::string& dir () const { return _dir; } 
@@ -126,6 +127,8 @@ class Listen: public SimpleComponent {
 		void print (std::string tabulation) const;
 		bool isSet () const;
 		void parse (Tokenizer& );
+		u_int32_t getAddress () const { return _addr.getAdress (); }
+		u_int16_t getPort () const { return _prt.getPort (); }
 };
 
 class Index: public SimpleComponent {

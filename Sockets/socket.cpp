@@ -19,21 +19,23 @@ const sockaddr *Addr::addr () const { return reinterpret_cast <const sockaddr *>
 size_t Addr::size () const { return sizeof addr_; }
 
 
-Socket::Socket (int _fd): fd(_fd) {}
-
-Socket::Socket () {
-	int fd = socket (AF_INET, SOCK_STREAM, 0);
-}
-
-int Socket::getFd () const { return fd; }
-
-void Socket::close () { ::close (fd); }
-
-
-ListenSocket::ListenSocket (): Socket () {
+ListenSocket::ListenSocket () {
+	fd = socket (AF_INET, SOCK_STREAM, 0);
+	if (fd < 0) return;
 	int on = 1;
 	setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof on);
-	fcntl (fd, F_SETFL, O_NONBLOCK);
+	int flags = fcntl (fd, F_GETFL);
+	flags |= O_NONBLOCK;
+	fcntl (fd, F_SETFL, flags);
+}
+
+int ListenSocket::getFd () const { return fd; }
+
+void ListenSocket::close () { ::close (fd); }
+
+
+ListenSocket::ListenSocket () {
+	
 }
 
 bool ListenSocket::bind (const Addr& addr_, int backlog) {

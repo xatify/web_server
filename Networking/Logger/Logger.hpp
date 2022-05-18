@@ -1,9 +1,7 @@
 #ifndef __LOGGER_HPP__
 #define __LOGGER_HPP__
 
-#include <iostream>
-#include <string>
-#include "Connection.hpp"
+#include "../Connections/Connection.hpp"
 
 class Logger {
 	private:

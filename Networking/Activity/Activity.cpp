@@ -1,5 +1,5 @@
 #include "Activity.hpp"
-#include "Configuration.hpp"
+#include "../../ServerConfiguration/Configuration.hpp"
 
 Activity::Activity () {
 	this->reset ();	

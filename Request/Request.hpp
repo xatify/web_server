@@ -1,9 +1,8 @@
-#ifndef __MESSAGE_HPP__
-#define __MESSAGE_HPP__
+#ifndef __REQUEST_HPP__
+#define __REQUEST_HPP__
 
 #include <string>
 #include <map>
-#include "Event.hpp"
 
 class RequestLine {
 	private:
