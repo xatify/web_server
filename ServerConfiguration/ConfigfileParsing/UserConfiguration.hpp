@@ -1,11 +1,14 @@
 #ifndef __USER_CONFIGURATION_HPP__
 #define __USER_CONFIGURATION_HPP__
 
-#include "tokenizer.hpp"
+
 #include <string>
 #include <vector>
 #include <set>
 #include <map>
+
+class Tokenizer;
+class Token;
 
 enum COMP {
 	UNKNOWN			=		0,

@@ -1,6 +1,9 @@
 #include "UserConfiguration.hpp"
 #include <arpa/inet.h>
 #include "utils.hpp"
+#include <iostream>
+#include "tokenizer.hpp"
+#include "tokens.hpp"
 
 Component::Component (const std::string& dir, bool sin, unsigned _sub):  _sin (sin), _dir (dir), _subs (_sub) {}
 Component::Component (const Component& _rhs): _sin (_rhs._sin), _dir (_rhs._dir), _subComp (_rhs._subComp){}
