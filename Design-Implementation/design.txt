@@ -105,4 +105,6 @@
 
 * many objects share the same instance of configuration
 * so configuration will be a singleton function 
-	
+
+
+// execution of dataConnection must be a state machine 
