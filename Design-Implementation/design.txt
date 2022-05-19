@@ -108,3 +108,5 @@
 
 
 // execution of dataConnection must be a state machine 
+// reading and writing events into or from a std::string is bad for performance
+// circullar buffer must be implemented
