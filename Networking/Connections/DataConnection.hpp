@@ -3,12 +3,15 @@
 
 #include <string>
 
-class Connection;
-class Event;
+#include "Connection.hpp"
+#include "../Event/Event.hpp"
+
 class Request;
 class Activity;
 class Request;
 class Response;
+class State;
+
 
 class dataConnection: public Connection {
     private:
@@ -16,9 +19,19 @@ class dataConnection: public Connection {
         Activity        *activity;
         Request         *request;
         Response        *response;
+        State           *state;
+        Event           event;
+        bool            close;
     public:
         dataConnection (int fd);
         ~dataConnection ();
-        void execute (Event e);
+        std::string& getInput ();
+        Request *getRequest ();
+        void TranslationTo (State *);
+        const Event& getEvent () const;
+        bool& getClose ();
+        void SetState (State *);
+        bool isClose () const;
+        void handle (Event e);
 };
 #endif
