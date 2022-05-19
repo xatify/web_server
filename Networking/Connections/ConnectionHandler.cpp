@@ -74,9 +74,9 @@ void ConnectionsHandler::start () {
 			newpolls.clear();
 			int ret = ::poll (&(pollfds[0]), pollfds.size (), -1);
 			for (std::vector<struct pollfd>::iterator it = pollfds.begin (); it != pollfds.end (); ++it) {
-				
 				Event event (it->revents);
 				if (!event) {
+					if ()
 					//  using Activity class of the connection
 					// if it is a dataConnection and it timeouted close it
 					// and log the close event
@@ -95,7 +95,7 @@ void ConnectionsHandler::start () {
 				}
 				else {
 					dataConnection *Data = dynamic_cast <dataConnection*> (connection);
-					Data->execute (event);
+					Data->handle (event);
 				}
 			}
 		}while (true);
