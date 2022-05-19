@@ -12,6 +12,7 @@ class Event {
 	private:
 		int event;
 	public:
+		Event	(): event (0) {}
 		Event	(int e): event (e & (READ | WRITE)) {}
 		~Event	(){}
 		operator bool () const { return event; }
